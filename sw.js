@@ -1,6 +1,6 @@
 // 電波がない時でも動くように、アプリのファイルをスマホの中に控えておく仕組み。
 // 問題やアプリを直したら VERSION の数字を上げる(スマホ側が新しい物を取り直す)。
-const VERSION = 6;
+const VERSION = 7;
 const CACHE = 'iikae-dojo-v' + VERSION;
 const FILES = [
   './', './index.html', './guide.html', './manifest.json',

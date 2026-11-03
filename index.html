@@ -157,6 +157,9 @@
   @keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-8px) rotate(-6deg); } 75% { transform: translateX(8px) rotate(6deg); } }
   .hurt { animation: hurt .4s; }
   @keyframes hurt { 0% { background: var(--ng-soft); } 100% { background: #fff; } }
+  textarea.rb { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; margin: 10px 0 4px; resize: vertical; }
+  .mine { background: #f3f0ff; border-radius: 8px; padding: 4px 10px; margin: 4px 0; font-size: 15px; }
+  .usebtn { font-size: 13px; padding: 3px 10px; background: #fff; border: 1px solid var(--line); border-radius: 14px; margin-top: 4px; }
   .seg button.on { border-color: var(--main); background: var(--main-soft); font-weight: bold; }
 </style>
 </head>
@@ -204,6 +207,14 @@
       <div id="todayMean"></div>
       <div class="small" id="todayEx"></div>
       <button class="ghost" id="todayBtn" onclick="usedToday()" style="margin-top:10px">今日、会話で使えた！(+10)</button>
+    </div>
+
+    <div class="card" id="srsCard">
+      <div class="rank-row">
+        <div><div class="small">📅 今日の復習(忘れかけた頃にもう一度出すと、記憶に残りやすい)</div><div class="rank-big" id="srsCount"></div></div>
+        <button class="icon-btn" id="srsBtn" onclick="startSrs()">復習する</button>
+      </div>
+      <div class="small" id="srsInfo"></div>
     </div>
 
     <button class="big" onclick="startMix()">🎲 ごちゃまぜ(迷ったらこれ)</button>
@@ -404,6 +415,26 @@
     <button class="ghost" onclick="goHome()">逃げる(ホームに戻る)</button>
   </section>
 
+  <!-- ===== 例文づくり ===== -->
+  <section id="reibun" class="hidden">
+    <div class="card">
+      <span class="cat">✍ 例文づくり</span>
+      <div class="small" style="margin-top:6px">覚えた言葉を使って、自分の生活に合った例文を作ろう。意味を眺めるより、自分で文を作ったほうが記憶に残りやすい。</div>
+      <div class="prompt" id="rbWord" style="margin-top:10px"></div>
+      <div id="rbMean"></div>
+      <div class="small" id="rbEx"></div>
+      <textarea class="rb" id="rbInput" rows="3" placeholder="ここに自分の例文を書く(例:きのうの会議で〜)"></textarea>
+      <div class="row">
+        <button class="said" onclick="reibunSave()">書いて保存(+5)</button>
+        <button class="said" onclick="reibunSaid()">声に出して言った(+3)</button>
+      </div>
+      <div class="heard" id="rbMsg"></div>
+      <div id="rbMine"></div>
+      <button class="next" onclick="nextReibun()">次の言葉 ▶</button>
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
   <!-- ===== 言葉帳 ===== -->
   <section id="book" class="hidden">
     <h2>📖 言葉帳</h2>
@@ -546,6 +577,7 @@ const MODES = [
   { id:'free',     g:2, icon:'🎤', name:'自由に言い換え', desc:'自分の言葉で言い換えて声に出す', start:() => startFree('free') },
   { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
   { id:'kaiwa',    g:2, icon:'🗨', name:'会話シミュレーション', desc:'相手のセリフに、いちばん良い返しを選んで4往復', start:() => startKaiwa() },
+  { id:'reibun',   g:2, icon:'✍', name:'例文づくり', desc:'覚えた言葉で自分の例文を作る', start:() => startReibun() },
   { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
   { id:'course',   g:3, icon:'🔥', name:'難関コース',     desc:'上級・超上級・地獄の3段階', start:() => showCourse() },
   { id:'boss',     g:3, icon:'⚔', name:'ボス戦',         desc:'6体のボスを言葉で倒せ', start:() => showBossMap() },
@@ -559,6 +591,7 @@ function modeCount(id) {
   if (id === 'time' || id === 'endless') return CHOICE_MODES.reduce((s, m) => s + D[m].length, 0);
   if (id === 'course') return HARD_MODES.reduce((s, m) => s + D[m].length, 0);
   if (id === 'boss') return BOSSES.length;
+  if (id === 'reibun') return Object.keys(S.words).length;
   return D[id].length;
 }
 
@@ -643,6 +676,10 @@ const BADGES = [
   ['course3',  '💀', '地獄の生還者',   '難関コース「地獄」をクリア',   s => !!(s.course[3] || {}).cleared],
   ['boss1',    '⚔', '初勝利',         'ボスを初めて倒した',           s => Object.values(s.boss).some(b => b && b.win)],
   ['bossAll',  '🐉', '言葉の神殺し',   'ラスボス「言葉の神」を倒した', s => !!(s.boss.b6 || {}).win],
+  ['master50', '🌳', '定着50語',       '間隔をあけた復習で50問が定着', s => masteredCount(s) >= 50],
+  ['master200','🏔', '定着200語',      '間隔をあけた復習で200問が定着', s => masteredCount(s) >= 200],
+  ['reibun20', '✍', '例文職人',       '自分の例文を20個作った',       s => s.cnt.reibun >= 20],
+  ['useword10','🗣', '実戦の鬼',       '言葉帳の言葉を会話で10回使った', s => s.cnt.usedWord >= 10],
   ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
 ];
 
@@ -652,7 +689,7 @@ function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
     days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
     daily:{ day:'', c:{}, done:{}, list:[], all:false },
-    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0 } };
+    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0 } };
 }
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // 読み込んだ記録の形を整える(おかしな所は空に戻す)。壊れていたら例外を出す
@@ -728,7 +765,7 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
@@ -795,7 +832,16 @@ function addWords(words, ok, ex) {
 function record(id, ok) {
   const st = S.stats[id] || { ok:0, ng:0, seen:0 };
   if (ok && st.ng > st.ok) S.cnt.weakFixed++;
+  const first = st.seen === 0;
   st.seen++; if (ok) st.ok++; else st.ng++;
+  // 間隔をあけた復習: 正解するたびに次に出す日を延ばし、間違えたら翌日に戻す
+  if (ok) {
+    st.stage = Math.min((st.stage || 0) + (first ? 2 : 1), SRS_DAYS.length);
+    st.due = dayNo() + SRS_DAYS[st.stage - 1];
+  } else {
+    st.stage = 0; st.due = dayNo() + 1;
+  }
+  if (roundKind === 'srs') dailyInc('srs');
   S.stats[id] = st;
   S.cnt.answered++;
   dailyInc('ans');
@@ -833,6 +879,7 @@ function renderHome() {
   renderToday();
   renderMissions();
   renderRank();
+  renderSrs();
 }
 
 // 今日の言葉(日付で決まる)
@@ -1432,13 +1479,14 @@ const MISSION_POOL = [
   ['kaiwa',  '会話シミュレーションを{n}本やる', [1]],
   ['voice',  '声出し練習(自由・ツッコミ・3語)を{n}回', [3]],
   ['review', '苦手復習で{n}問答える',           [5]],
+  ['srs',    '「今日の復習」で{n}問答える',     [5]],
 ];
 function genMissions() {
   const d = new Date();
   let seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
   const pool = MISSION_POOL.filter(([k]) =>
-    (k !== 'kaiwa' || D.kaiwa.length) && (k !== 'review' || poolOf(CHOICE_MODES, true).length >= 5));
+    (k !== 'kaiwa' || D.kaiwa.length) && (k !== 'review' || poolOf(CHOICE_MODES, true).length >= 5) && (k !== 'srs' || duePool().length >= 5));
   const out = [];
   while (out.length < 3 && pool.length) {
     const [k, text, ns] = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
@@ -1922,6 +1970,97 @@ function bossEnd(win) {
   $('bEnd').classList.remove('hidden');
 }
 
+
+// ===== 今日の復習(間隔をあけた復習) =====
+const SRS_DAYS = [1, 3, 7, 14, 30, 60];
+function dayNo() { const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
+let ID_INDEX = null;
+function idIndex() {
+  if (!ID_INDEX) {
+    ID_INDEX = {};
+    CHOICE_MODES.concat(HARD_MODES).forEach(m => IDS[m].forEach((id, i) => { ID_INDEX[id] = { m, i }; }));
+  }
+  return ID_INDEX;
+}
+function duePool() {
+  const idx = idIndex(), today = dayNo(), out = [];
+  for (const [id, st] of Object.entries(S.stats)) {
+    if (!isObj(st) || !st.due || st.due > today || !idx[id]) continue;
+    out.push({ m: idx[id].m, i: idx[id].i, id, w: 1, due: st.due });
+  }
+  return out.sort((a, b) => a.due - b.due);
+}
+function masteredCount(s) {
+  const idx = idIndex();
+  return Object.entries(s.stats).filter(([id, st]) => idx[id] && isObj(st) && (st.stage || 0) >= 4).length;
+}
+function renderSrs() {
+  const n = duePool().length;
+  $('srsCount').textContent = n ? `${n}問` : 'なし';
+  $('srsBtn').disabled = n === 0;
+  $('srsBtn').textContent = n ? '復習する' : '今日は済み';
+  $('srsInfo').textContent = n
+    ? '正解した問題は、1日後→3日後→1週間後→2週間後…と間をあけて出し直します。'
+    : `今日出す問題はありません。定着した問題:${masteredCount(S)}問。`;
+}
+function startSrs() {
+  const pool = duePool();
+  if (!pool.length) return;
+  roundKind = 'srs'; againFn = () => { if (duePool().length) startSrs(); else goHome(); };
+  begin(pool.slice(0, Math.max(S.settings.n, 10)));
+}
+
+// ===== 例文づくり =====
+let rbWord = null, rbSaved = false, rbSpoke = false, bookShown = [];
+function startReibun() {
+  if (!Object.keys(S.words).length) { alert('まず問題を解いて、言葉帳に言葉をためてから使ってください。'); return; }
+  played('reibun'); roundKind = 'normal';
+  show('reibun'); nextReibun();
+}
+function nextReibun() {
+  const ents = Object.entries(S.words);
+  // まだ自分の例文がない言葉、苦手な言葉を優先
+  const pool = ents.map(([w, e]) => ({ w, wt: (e.mine && e.mine.length ? 1 : 5) + (e.ng > e.ok ? 3 : 0) }));
+  let total = pool.reduce((a, x) => a + x.wt, 0), r = Math.random() * total, k = 0;
+  while (r > pool[k].wt && k < pool.length - 1) { r -= pool[k].wt; k++; }
+  rbWord = pool[k].w; rbSaved = false; rbSpoke = false;
+  const e = S.words[rbWord];
+  $('rbWord').textContent = rbWord;
+  $('rbMean').textContent = e.m || '';
+  $('rbEx').textContent = e.ex ? '例:' + e.ex : '';
+  $('rbInput').value = '';
+  $('rbMsg').textContent = '';
+  $('rbMine').innerHTML = (e.mine || []).map(t => `<div class="mine">✍ 前に作った例文:${esc(t)}</div>`).join('');
+  justShown();
+}
+function wordCore(w) { return w.replace(/[(（].*$/, '').replace(/[をにがはで]?[るいうくすつむぶぬ]$/, '').slice(0, 3); }
+function reibunSave() {
+  const t = $('rbInput').value.trim();
+  if (!t) { $('rbMsg').textContent = '例文を書いてから押してください。'; return; }
+  if (rbSaved) { $('rbMsg').textContent = 'この言葉の例文は保存済みです。「次の言葉」へどうぞ。'; return; }
+  const e = S.words[rbWord];
+  e.mine = (e.mine || []).concat([t]).slice(-3);
+  rbSaved = true; S.cnt.reibun++;
+  const hit = t.includes(wordCore(rbWord));
+  addPoint(hit ? 5 : 2); markPracticed(); dailyInc('said'); save(); checkBadges();
+  $('rbMsg').textContent = hit ? '✔ 保存した(+5)。言葉帳に「自分の例文」として残ります。声に出して読むとさらに効く。'
+                               : '保存した(+2)。ただ「' + rbWord + '」が文に入っていないみたい。入れて作ると効果が上がる。';
+  $('rbMine').innerHTML = e.mine.map(x => `<div class="mine">✍ ${esc(x)}</div>`).join('');
+}
+function reibunSaid() {
+  if (rbSpoke || tooSoon()) return;
+  rbSpoke = true; S.cnt.said++; addPoint(3); dailyInc('said'); markPracticed();
+  $('rbMsg').textContent = '✔ 声に出して言えた(+3)';
+}
+function usedWord(k) {
+  const w = bookShown[k], e = w && S.words[w];
+  if (!e) return;
+  e.used = (e.used || 0) + 1; S.cnt.usedWord++;
+  addPoint(5); markPracticed(); save(); checkBadges();
+  toast('🗣「' + w + '」を実戦で使った！+5pt');
+  renderBook();
+}
+
 // ===== 言葉帳 =====
 function showBook() { $('bookSearch').value = ''; renderBook(); show('book'); }
 function renderBook() {
@@ -1934,9 +2073,12 @@ function renderBook() {
   if (qy) ents = ents.filter(([w, e]) => w.includes(qy) || (e.m || '').includes(qy));
   ents.sort((a, b) => (b[1].ng - b[1].ok) - (a[1].ng - a[1].ok));
   const shown = ents.slice(0, 300);
-  $('bookList').innerHTML = `<div class="small">${ents.length}語${ents.length > 300 ? '(上から300語を表示。さがす欄で絞りこめます)' : ''}</div>` + shown.map(([w, e]) => {
+  bookShown = shown.map(([w]) => w);
+  $('bookList').innerHTML = `<div class="small">${ents.length}語${ents.length > 300 ? '(上から300語を表示。さがす欄で絞りこめます)' : ''}</div>` + shown.map(([w, e], k) => {
     const pill = e.ng > e.ok ? '<span class="pill weak">苦手</span>' : (e.ok >= 2 ? '<span class="pill good">身についた</span>' : '');
-    return `<div class="book-item"><b>${esc(w)}</b>${pill}<div class="m">${esc(e.m)}</div>${e.ex ? `<div class="small">例:${esc(e.ex)}</div>` : ''}</div>`;
+    const mine = (e.mine || []).map(t => `<div class="mine">✍ ${esc(t)}</div>`).join('');
+    return `<div class="book-item"><b>${esc(w)}</b>${pill}<div class="m">${esc(e.m)}</div>${e.ex ? `<div class="small">例:${esc(e.ex)}</div>` : ''}${mine}` +
+      `<button class="usebtn" onclick="usedWord(${k})">🗣 会話で使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`;
   }).join('');
 }
 
@@ -1961,7 +2103,7 @@ function showRecord() {
     } else { cell.style.background = 'none'; }
     cal.appendChild(cell);
   }
-  $('recSummary').textContent = `この5週間で${total}日練習 ・ いまの連続${streakNow()}日 ・ 最長${S.maxStreak}日 ・ 答えた問題 合計${S.cnt.answered}問 ・ 声に出した回数 ${S.cnt.said}回`;
+  $('recSummary').textContent = `定着した問題 ${masteredCount(S)}問 ・ 自分の例文 ${S.cnt.reibun}個 ・ この5週間で${total}日練習 ・ いまの連続${streakNow()}日 ・ 最長${S.maxStreak}日 ・ 答えた問題 合計${S.cnt.answered}問 ・ 声に出した回数 ${S.cnt.said}回`;
 
   // 遊び方ごとの正解率
   const acc = {};
