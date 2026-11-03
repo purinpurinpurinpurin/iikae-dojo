@@ -351,23 +351,31 @@
 <script src="data/free_more.js"></script>
 <script src="data/tsukkomi.js"></script>
 <script src="data/sango.js"></script>
+<script src="data/goyou_more.js"></script>
+<script src="data/narabe_more.js"></script>
+<script src="data/keigo_more.js"></script>
+<script src="data/anaume_more.js"></script>
+<script src="data/tatoe_more.js"></script>
+<script src="data/tsukkomi_more.js"></script>
+<script src="data/sango_more.js"></script>
+<script src="data/free_more2.js"></script>
 
 <script>
 // ===== データをまとめる =====
 const D = {
   iikae:    [].concat(window.QUESTIONS || [], window.IIKAE_MORE || [], window.IIKAE_MORE2 || []),
-  keigo:    window.KEIGO || [],
+  keigo:    [].concat(window.KEIGO || [], window.KEIGO_MORE || []),
   imi:      [].concat(window.IMI || [], window.IMI_MORE || []),
   yomi:     window.YOMI || [],
   katakana: window.KATAKANA || [],
   taigi:    window.TAIGI || [],
-  anaume:   window.ANAUME || [],
-  goyou:    window.GOYOU || [],
-  tatoe:    window.TATOE || [],
-  narabe:   window.NARABE || [],
-  free:     [].concat(window.FREE || [], window.FREE_MORE || []),
-  tsukkomi: window.TSUKKOMI || [],
-  sango:    window.SANGO || [],
+  anaume:   [].concat(window.ANAUME || [], window.ANAUME_MORE || []),
+  goyou:    [].concat(window.GOYOU || [], window.GOYOU_MORE || []),
+  tatoe:    [].concat(window.TATOE || [], window.TATOE_MORE || []),
+  narabe:   [].concat(window.NARABE || [], window.NARABE_MORE || []),
+  free:     [].concat(window.FREE || [], window.FREE_MORE || [], window.FREE_MORE2 || []),
+  tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || []),
+  sango:    [].concat(window.SANGO || [], window.SANGO_MORE || []),
 };
 const CHOICE_MODES = ['iikae', 'imi', 'yomi', 'katakana', 'taigi', 'anaume', 'goyou', 'keigo', 'tatoe'];
 
