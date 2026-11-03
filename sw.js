@@ -1,9 +1,9 @@
 // 電波がない時でも動くように、アプリのファイルをスマホの中に控えておく仕組み。
 // 問題やアプリを直したら VERSION の数字を上げる(スマホ側が新しい物を取り直す)。
-const VERSION = 3;
+const VERSION = 5;
 const CACHE = 'iikae-dojo-v' + VERSION;
 const FILES = [
-  './', './index.html', './manifest.json',
+  './', './index.html', './guide.html', './manifest.json',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
   './data/base.js', './data/iikae_more.js', './data/iikae_more2.js', './data/keigo.js',
   './data/imi.js', './data/imi_more.js', './data/yomi.js', './data/katakana.js', './data/taigi.js',
@@ -11,11 +11,14 @@ const FILES = [
   './data/free_more.js', './data/tsukkomi.js', './data/sango.js',
   './data/goyou_more.js', './data/narabe_more.js', './data/keigo_more.js', './data/anaume_more.js',
   './data/tatoe_more.js', './data/tsukkomi_more.js', './data/sango_more.js', './data/free_more2.js',
+  './data/kaiwa1.js', './data/kaiwa2.js', './data/kaiwa3.js',
 ];
 
 self.addEventListener('install', e => {
+  // 全部そろって取れた時だけ新しい版にする。電波が弱くて1つでも失敗したら、
+  // 今の控えをそのまま使い続ける(次に開いた時にまた取り直す)
   e.waitUntil(caches.open(CACHE).then(c =>
-    Promise.all(FILES.map(f => c.add(new Request(f, { cache: 'reload' })).catch(() => {})))
+    c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))
   ).then(() => self.skipWaiting()));
 });
 

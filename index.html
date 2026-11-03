@@ -44,7 +44,8 @@
   .ghost { display: block; width: 100%; padding: 12px; background: #fff; border-color: var(--line); color: var(--ink); margin: 8px 0; }
   .ghost:hover { border-color: var(--main); }
   .section-label { font-size: 15px; color: var(--sub); margin: 20px 0 6px; font-weight: bold; }
-  .modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+  @media (max-width: 480px) { .mode { padding: 10px; } .mode b { font-size: 16px; } .mode small { font-size: 12px; } }
   .mode { text-align: left; background: #fff; border-color: var(--line); padding: 12px 14px; }
   .mode:hover:not(:disabled) { border-color: var(--main); background: #fffaf8; }
   .mode b { display: block; font-size: 18px; }
@@ -127,6 +128,21 @@
   .acc-row:last-child { border-bottom: none; }
   .seg { display: flex; gap: 8px; margin: 6px 0 14px; }
   .seg button { flex: 1; padding: 10px; background: #fff; border-color: var(--line); }
+  .chat { margin: 12px 0; }
+  .bub { max-width: 88%; padding: 10px 14px; border-radius: 16px; margin: 8px 0; font-size: 18px; }
+  .bub .nm { display: block; font-size: 12px; color: var(--sub); }
+  .bub.them { background: #f1efe9; border-top-left-radius: 4px; }
+  .bub.me { background: #e3f2fd; margin-left: auto; border-top-right-radius: 4px; }
+  .bub.me.ngb { background: var(--ng-soft); }
+  .bub.me.okb { background: var(--ok-soft); }
+  .mission { margin: 8px 0; }
+  .mission .mt { display: flex; justify-content: space-between; font-size: 16px; }
+  .mission .mt span:last-child { color: var(--sub); font-size: 14px; }
+  .mission.done .mt span:first-child { color: var(--ok); font-weight: bold; }
+  .mbar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .mbar i { display: block; height: 100%; background: var(--ok); }
+  .rank-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .rank-big { font-size: 26px; font-weight: bold; color: var(--ink); }
   .seg button.on { border-color: var(--main); background: var(--main-soft); font-weight: bold; }
 </style>
 </head>
@@ -136,6 +152,7 @@
   <!-- ===== ホーム ===== -->
   <section id="home">
     <div class="topbar">
+      <a class="icon-btn" href="guide.html" style="text-decoration:none;color:inherit;border:2px solid var(--line);border-radius:12px">❓ 使い方</a>
       <button class="icon-btn" onclick="showRecord()">📅 記録とバッジ</button>
       <button class="icon-btn" onclick="showSettings()">⚙ 設定</button>
     </div>
@@ -152,6 +169,19 @@
         <div class="stat"><b id="stWords">0</b><small>覚えた言葉</small></div>
         <div class="stat"><b id="stBadge">0</b><small>バッジ</small></div>
       </div>
+    </div>
+
+    <div class="card" id="missionCard">
+      <div class="small">🎯 今日のミッション(1つ達成で+20、全部達成でさらに+30)</div>
+      <div id="missionList"></div>
+    </div>
+
+    <div class="card" id="rankCard">
+      <div class="rank-row">
+        <div><div class="small">🥋 段位(10級からスタート、十段がゴール)</div><div class="rank-big" id="rankNow"></div></div>
+        <button class="icon-btn" id="examBtn" onclick="startExam()">昇段試験を受ける</button>
+      </div>
+      <div class="small" id="rankInfo"></div>
     </div>
 
     <div class="card today" id="todayCard">
@@ -189,6 +219,7 @@
           <div class="small">🗣 声に出して言ってみよう(話す時に使えるようにするのが目的です)</div>
           <div class="line" id="qBetter"></div>
           <div class="row">
+            <button class="said tts" onclick="speakText(current.speak)">🔊 聞く</button>
             <button class="mic" id="micBtn" onclick="listen()">🎤 マイクで言う</button>
             <button class="said" id="saidBtn" onclick="saidIt()">言えた！(+5)</button>
           </div>
@@ -270,10 +301,42 @@
         <div class="tsukkomi ok"><div class="who">師範</div><span id="fTsukkomi"></span></div>
         <div class="small" id="fExLabel">お手本:</div>
         <ul class="examples" id="fExamples"></ul>
+        <button class="ghost tts" onclick="speakFree()">🔊 お手本を聞く</button>
         <div class="words hidden" id="fWords"></div>
         <div class="small" id="fPoint"></div>
       </div>
       <button class="next" onclick="nextFree()">次のお題 ▶</button>
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== 会話シミュレーション ===== -->
+  <section id="kaiwa" class="hidden">
+    <div class="progress"><span id="kNum"></span><span id="kPoint"></span></div>
+    <div class="card">
+      <span class="cat">🗨 会話シミュレーション</span>
+      <h2 id="kTitle" style="margin-top:6px"></h2>
+      <div class="scene" id="kScene"></div>
+      <div class="chat" id="kChat"></div>
+      <div id="kPlay">
+        <div class="ask">↓ あなたの返しは？いちばん良いものを選んで。</div>
+        <div id="kChoices"></div>
+      </div>
+      <div id="kFeedback" class="hidden">
+        <div class="tsukkomi" id="kTsukkomi"></div>
+        <div class="row">
+          <button class="said tts" onclick="speakText(kCurA)">🔊 良い返しを聞く</button>
+          <button class="said" id="kSaidBtn" onclick="kaiwaSaid()">声に出して言えた！(+3)</button>
+        </div>
+        <button class="next" id="kNext" onclick="kaiwaNext()">次へ ▶</button>
+      </div>
+      <div id="kEnd" class="hidden">
+        <div class="center small">この会話の結果</div>
+        <div class="score center" id="kScore"></div>
+        <div class="center" id="kComment"></div>
+        <div class="words" id="kWords"></div>
+        <button class="big" onclick="startKaiwa()">別の会話をやる</button>
+      </div>
     </div>
     <button class="ghost" onclick="goHome()">ホームに戻る</button>
   </section>
@@ -359,6 +422,9 @@
 <script src="data/tsukkomi_more.js"></script>
 <script src="data/sango_more.js"></script>
 <script src="data/free_more2.js"></script>
+<script src="data/kaiwa1.js"></script>
+<script src="data/kaiwa2.js"></script>
+<script src="data/kaiwa3.js"></script>
 
 <script>
 // ===== データをまとめる =====
@@ -376,6 +442,7 @@ const D = {
   free:     [].concat(window.FREE || [], window.FREE_MORE || [], window.FREE_MORE2 || []),
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || []),
+  kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || []),
 };
 const CHOICE_MODES = ['iikae', 'imi', 'yomi', 'katakana', 'taigi', 'anaume', 'goyou', 'keigo', 'tatoe'];
 
@@ -406,6 +473,7 @@ const MODES = [
   { id:'narabe',   g:1, icon:'📶', name:'強さ並べ替え',   desc:'似た言葉を弱い順に並べる', start:() => startNarabe() },
   { id:'free',     g:2, icon:'🎤', name:'自由に言い換え', desc:'自分の言葉で言い換えて声に出す', start:() => startFree('free') },
   { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
+  { id:'kaiwa',    g:2, icon:'🗨', name:'会話シミュレーション', desc:'相手のセリフに、いちばん良い返しを選んで4往復', start:() => startKaiwa() },
   { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
   { id:'time',     g:3, icon:'⏱', name:'60秒タイムアタック', desc:'説明なしで何問とけるか勝負', start:() => startTime() },
 ];
@@ -484,6 +552,12 @@ const BADGES = [
   ['sango20',  '🎙', '3語の語り部',    '3語スピーチを20回',          s => s.cnt.sango >= 20],
   ['weak10',   '💪', '苦手克服',       '苦手だった問題に10回正解',   s => s.cnt.weakFixed >= 10],
   ['used10',   '🌱', '実戦派',         '今日の言葉を会話で10回使った', s => s.cnt.used >= 10],
+  ['rank5',    '🎽', '5級',           '昇段試験で5級になった',      s => s.rank >= 5],
+  ['shodan',   '🥋', '初段',           '昇段試験で初段になった',     s => s.rank >= 10],
+  ['judan',    '🐉', '十段',           '最高段位の十段に到達',       s => s.rank >= 19],
+  ['mission1', '🎯', 'ミッション達成', '今日のミッションを全部達成', s => s.cnt.missionDays >= 1],
+  ['mission10','🏹', 'ミッション10日', 'ミッション全達成が10日',     s => s.cnt.missionDays >= 10],
+  ['kaiwa10',  '🗨', '会話上手',       '会話シミュレーションを10本', s => s.cnt.kaiwa >= 10],
   ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
 ];
 
@@ -491,16 +565,38 @@ const BADGES = [
 const KEY = 'iikae_dojo_v1';
 function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
-    days:{}, badges:{}, played:{}, settings:{ n:5, sound:true },
-    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0 } };
+    days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{},
+    daily:{ day:'', c:{}, done:{}, list:[], all:false },
+    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0 } };
+}
+const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
+// 読み込んだ記録の形を整える(おかしな所は空に戻す)。壊れていたら例外を出す
+function normalize(raw) {
+  if (!isObj(raw)) throw new Error('形が違う');
+  const b = blank();
+  const s = Object.assign(b, raw);
+  for (const k of ['stats', 'words', 'days', 'badges', 'played', 'kplayed']) if (!isObj(s[k])) s[k] = {};
+  for (const k of ['point', 'streak', 'maxStreak', 'best', 'rank']) { s[k] = Number(s[k]); if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; }
+  s.rank = Math.min(Math.floor(s.rank), 19);
+  s.settings = Object.assign(blank().settings, isObj(s.settings) ? s.settings : {});
+  s.cnt = Object.assign(blank().cnt, isObj(s.cnt) ? s.cnt : {});
+  s.daily = Object.assign(blank().daily, isObj(s.daily) ? s.daily : {});
+  if (!Array.isArray(s.daily.list)) s.daily.list = [];
+  if (!isObj(s.daily.c)) s.daily.c = {};
+  if (!isObj(s.daily.done)) s.daily.done = {};
+  return migrate(s);
 }
 function load() {
-  let s;
-  try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { s = {}; }
-  const b = blank();
-  s = Object.assign(b, s);
-  s.settings = Object.assign(blank().settings, s.settings || {});
-  s.cnt = Object.assign(blank().cnt, s.cnt || {});
+  const txt = localStorage.getItem(KEY);
+  if (!txt) return blank();
+  try { return normalize(JSON.parse(txt)); }
+  catch (e) {
+    // 壊れた記録は消さずに別の場所へ退避してから、まっさらで始める
+    try { localStorage.setItem(KEY + '_broken', txt); } catch (e2) {}
+    return blank();
+  }
+}
+function migrate(s) {
   // 古い版の成績(番号で記録していたもの)を新しい形に移す
   for (const k of Object.keys(s.stats)) {
     let m = null, n = null;
@@ -516,7 +612,13 @@ function load() {
   return s;
 }
 let S = load();
-function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
+let saveWarned = false;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch (e) {
+    if (!saveWarned) { saveWarned = true; setTimeout(() => toast('⚠ 記録を保存できませんでした(スマホの空き容量や設定を確認してください)'), 0); }
+  }
+}
 
 function dayStr(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
 function today() { return dayStr(new Date()); }
@@ -541,12 +643,16 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
 }
-function goHome() { stopListen(); stopTimer(); stopFreeTimer(); renderHome(); show('home'); }
+function goHome() { stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); renderHome(); show('home'); }
+// 画面が切り替わった直後0.4秒は、選択肢を押しても反応しない(「次へ」の二度押し対策)
+let shownAt = 0;
+function justShown() { shownAt = Date.now(); }
+function tooSoon() { return Date.now() - shownAt < 400; }
 function played(mode) { if (!S.played[mode]) { S.played[mode] = 1; save(); } }
 
 function toast(msg) {
@@ -607,6 +713,9 @@ function record(id, ok) {
   st.seen++; if (ok) st.ok++; else st.ng++;
   S.stats[id] = st;
   S.cnt.answered++;
+  dailyInc('ans');
+  if (ok) dailyInc('ok');
+  if (roundKind === 'review' && id.split(':')[0] !== 'kaiwa') dailyInc('review');
 }
 
 // ===== ホーム =====
@@ -637,6 +746,8 @@ function renderHome() {
     box.appendChild(lab); box.appendChild(grid);
   });
   renderToday();
+  renderMissions();
+  renderRank();
 }
 
 // 今日の言葉(日付で決まる)
@@ -742,14 +853,17 @@ function poolOf(modes, weakOnly) {
 }
 
 // ===== 4択・2択クイズ =====
+let roundKind = 'normal';
 let round = [], qi = 0, roundPoint = 0, roundCorrect = 0, answered = false, spoke = false, current = null, againFn = null;
 
 function startChoice(mode) {
+  roundKind = 'normal';
   againFn = () => startChoice(mode);
   played(mode);
   begin(pickWeighted(poolOf([mode]), S.settings.n));
 }
 function startMix() {
+  roundKind = 'normal';
   againFn = startMix;
   const avail = CHOICE_MODES.filter(m => D[m].length);
   const pools = {}; avail.forEach(m => pools[m] = poolOf([m]));
@@ -762,6 +876,7 @@ function startMix() {
   begin(picks);
 }
 function startReview() {
+  roundKind = 'review';
   againFn = startReview;
   const pool = poolOf(CHOICE_MODES, true);
   if (!pool.length) { alert('苦手な問題はまだありません。まずはほかの遊び方で遊んでみよう。'); return; }
@@ -776,7 +891,7 @@ function renderQ() {
   stopListen();
   answered = false; spoke = false;
   current = round[qi];
-  $('qNum').textContent = `${qi + 1} / ${round.length}問目`;
+  $('qNum').textContent = (roundKind === 'exam' ? '🥋 昇段試験 ' : '') + `${qi + 1} / ${round.length}問目` + (roundKind === 'exam' ? '(8問正解で合格)' : '');
   $('qPoint').textContent = `今回 +${roundPoint}pt`;
   $('qBar').style.width = (qi / round.length * 100) + '%';
   $('qCat').textContent = current.cat;
@@ -792,13 +907,14 @@ function renderQ() {
     box.appendChild(b);
   });
   $('qResult').classList.add('hidden');
+  justShown();
   $('heard').textContent = '';
   $('saidBtn').disabled = false; $('saidBtn').textContent = '言えた！(+5)';
   $('micBtn').classList.toggle('hidden', !Recog);
 }
 
 function answer(btn, c) {
-  if (answered) return;
+  if (answered || tooSoon()) return;
   answered = true;
   const ok = !!c.ok;
   document.querySelectorAll('#qChoices .choice').forEach(b => {
@@ -832,7 +948,7 @@ function answer(btn, c) {
 
 function saidIt() {
   if (spoke) return;
-  spoke = true; roundPoint += 5; S.cnt.said++; addPoint(5); checkBadges();
+  spoke = true; roundPoint += 5; S.cnt.said++; addPoint(5); dailyInc('said'); checkBadges();
   $('saidBtn').disabled = true; $('saidBtn').textContent = '✔ 言えた +5pt';
   $('qPoint').textContent = `今回 +${roundPoint}pt`;
 }
@@ -846,6 +962,8 @@ function nextQ() {
 function showRoundResult() {
   stopListen();
   const c = roundCorrect, n = round.length;
+  $('rAgain').textContent = 'もう1回';
+  if (roundKind === 'exam') return showExamResult(c, n);
   if (c === n && n >= 5) { S.cnt.perfect++; save(); checkBadges(); beep(SND_UP); }
   $('rLabel').textContent = '今回の結果';
   $('rScore').textContent = `${c} / ${n}`;
@@ -865,7 +983,7 @@ function showRoundResult() {
 // ===== 強さ並べ替え =====
 let nRound = [], ni = 0, nSel = [], nPoint = 0, nCorrect = 0, nDone = false;
 function startNarabe() {
-  againFn = startNarabe; played('narabe');
+  roundKind = 'normal'; againFn = startNarabe; played('narabe');
   nRound = pickWeighted(poolOf(['narabe']), S.settings.n).map(p => p.i);
   ni = 0; nPoint = 0; nCorrect = 0;
   show('narabe'); renderNarabe();
@@ -888,9 +1006,10 @@ function renderNarabe() {
   });
   $('nReset').classList.remove('hidden');
   $('nResult').classList.add('hidden');
+  justShown();
 }
 function narabeTap(b, t) {
-  if (nDone || nSel.includes(t)) return;
+  if (nDone || nSel.includes(t) || tooSoon()) return;
   nSel.push(t);
   const s = document.createElement('span'); s.className = 'num'; s.textContent = nSel.length;
   b.appendChild(s); b.disabled = true;
@@ -945,7 +1064,7 @@ function nextNarabe() {
 // ===== 60秒タイムアタック =====
 let tTimer = null, tLeft = 60, tScore = 0, tMiss = [], tCur = null, tLock = false, tUsed = new Set();
 function startTime() {
-  againFn = startTime; played('time');
+  roundKind = 'normal'; againFn = startTime; played('time');
   tLeft = 60; tScore = 0; tMiss = []; tUsed = new Set(); tLock = false;
   $('tTimer').textContent = tLeft; $('tScore').textContent = '0問正解';
   show('time'); nextTime();
@@ -955,7 +1074,11 @@ function startTime() {
     if (tLeft <= 0) endTime(false);
   }, 1000);
 }
-function stopTimer() { if (tTimer) { clearInterval(tTimer); tTimer = null; } }
+let tNextId = null;
+function stopTimer() {
+  if (tTimer) { clearInterval(tTimer); tTimer = null; }
+  if (tNextId) { clearTimeout(tNextId); tNextId = null; }
+}
 function nextTime() {
   let pool = poolOf(CHOICE_MODES).filter(x => !tUsed.has(x.id));
   if (!pool.length) { tUsed = new Set(); pool = poolOf(CHOICE_MODES); }
@@ -987,7 +1110,7 @@ function timeAnswer(b, c) {
     tMiss.push(tCur);
   }
   $('tScore').textContent = tScore + '問正解';
-  setTimeout(() => { if (tTimer) nextTime(); }, ok ? 350 : 1100);
+  tNextId = setTimeout(() => { tNextId = null; if (tTimer) nextTime(); }, ok ? 350 : 1100);
 }
 function endTime(quit) {
   if (!tTimer) return;
@@ -997,6 +1120,7 @@ function endTime(quit) {
   const newBest = tScore > S.best;
   if (newBest) S.best = tScore;
   addPoint(pts); markPracticed();
+  dailyInc('time', tScore, true);
   if (newBest) beep(SND_UP);
   $('rLabel').textContent = '60秒タイムアタックの結果';
   $('rScore').textContent = `${tScore}問正解`;
@@ -1014,7 +1138,7 @@ function endTime(quit) {
 // ===== 声出し(自由に言い換え・ツッコミ道場・3語スピーチ) =====
 let fMode = 'free', fOrder = [], fi = 0, fRevealed = false, fHeardText = '';
 function startFree(mode) {
-  fMode = mode; played(mode);
+  roundKind = 'normal'; fMode = mode; played(mode);
   fOrder = shuffle(D[mode].map((_, i) => i)); fi = 0;
   show('free'); renderFree();
 }
@@ -1048,6 +1172,7 @@ function renderFree() {
   }
   $('fHeard').textContent = '';
   $('fAnswer').classList.add('hidden');
+  justShown();
   $('fMic').classList.toggle('hidden', !Recog);
 }
 function revealFree() {
@@ -1061,6 +1186,7 @@ function revealFree() {
     else if (fMode === 'sango') S.cnt.sango++;
     else S.cnt.free++;
     addPoint(pts); markPracticed();
+    dailyInc('said'); dailyInc('voice');
     $('fPoint').textContent = '+' + pts + 'pt';
   }
   if (fMode === 'sango') {
@@ -1078,6 +1204,7 @@ function revealFree() {
   $('fAnswer').classList.remove('hidden');
 }
 function saidFree() {
+  if (tooSoon()) return;
   // マイクで聞いている途中なら、聞き取りを終わらせてから答えを出す
   if (rec) { try { rec.stop(); } catch (e) { stopListen(); } }
   revealFree();
@@ -1103,15 +1230,22 @@ function stopFreeTimer() { if (fTimerId) { clearInterval(fTimerId); fTimerId = n
 // ===== マイク(使える環境だけ) =====
 const Recog = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
-function stopListen() { if (rec) { try { rec.abort(); } catch (e) {} rec = null; } }
+function stopListen() {
+  if (!rec) return;
+  const old = rec; rec = null;
+  old.onresult = old.onerror = old.onend = null;
+  try { old.abort(); } catch (e) {}
+}
 function startListen(outEl, onDone, continuous) {
   if (!Recog) return;
   stopListen();
-  rec = new Recog();
+  const me = new Recog();
+  rec = me;
   rec.lang = 'ja-JP'; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = !!continuous;
   let finalText = '';
   outEl.textContent = continuous ? '🎤 聞いています…話し終わったら「言った！」を押してください' : '🎤 聞いています…どうぞ話してください';
   rec.onresult = ev => {
+    if (rec !== me) return;
     let t = '';
     for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
     finalText = t;
@@ -1119,11 +1253,12 @@ function startListen(outEl, onDone, continuous) {
     if (continuous) onDone(t, true);
   };
   rec.onerror = ev => {
+    if (rec !== me) return;
     outEl.textContent = (ev.error === 'not-allowed')
       ? 'マイクが使えませんでした。声に出して言ったら、となりのボタンを押してください。'
       : 'うまく聞き取れませんでした。もう一度か、となりのボタンを押してください。';
   };
-  rec.onend = () => { rec = null; if (finalText) onDone(finalText, false); };
+  rec.onend = () => { if (rec !== me) return; rec = null; if (finalText) onDone(finalText, false); };
   try { rec.start(); } catch (e) { outEl.textContent = 'マイクを開始できませんでした。'; }
 }
 function listen() {
@@ -1146,6 +1281,231 @@ function listenFree() {
     return;
   }
   startListen($('fHeard'), t => { $('fHeard').textContent = 'あなた:「' + t + '」'; revealFree(); });
+}
+
+// ===== 読み上げ(スマホの中の声を使うので、電波なしでも動く) =====
+const TTS_OK = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
+function stopSpeak() { if (TTS_OK) try { speechSynthesis.cancel(); } catch (e) {} }
+function speakText(t) {
+  if (!TTS_OK || !t) return;
+  stopSpeak();
+  const u = new SpeechSynthesisUtterance(String(t).replace(/[「」]/g, ''));
+  u.lang = 'ja-JP'; u.rate = 0.95;
+  const v = speechSynthesis.getVoices().find(v => /ja[-_]JP/i.test(v.lang));
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+}
+function speakFree() {
+  const f = D[fMode][fOrder[fi]];
+  speakText(fMode === 'sango' ? f.ex : (f.ex || []).join('。'));
+}
+if (!TTS_OK) document.querySelectorAll('.tts').forEach(b => b.classList.add('hidden'));
+
+// ===== 今日のミッション =====
+const MISSION_POOL = [
+  ['ans',    '問題に{n}問答える',               [10, 15, 20]],
+  ['ok',     '{n}問正解する',                   [8, 12]],
+  ['said',   '声に出して{n}回言う',             [5, 8]],
+  ['time',   '60秒タイムアタックで{n}問以上',   [8, 10]],
+  ['kaiwa',  '会話シミュレーションを{n}本やる', [1]],
+  ['voice',  '声出し練習(自由・ツッコミ・3語)を{n}回', [3]],
+  ['review', '苦手復習で{n}問答える',           [5]],
+];
+function genMissions() {
+  const d = new Date();
+  let seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const pool = MISSION_POOL.filter(([k]) =>
+    (k !== 'kaiwa' || D.kaiwa.length) && (k !== 'review' || poolOf(CHOICE_MODES, true).length >= 5));
+  const out = [];
+  while (out.length < 3 && pool.length) {
+    const [k, text, ns] = pool.splice(Math.floor(rnd() * pool.length), 1)[0];
+    const n = ns[Math.floor(rnd() * ns.length)];
+    out.push({ k, n, text: text.replace('{n}', n) });
+  }
+  return out;
+}
+function ensureDaily() {
+  if (S.daily.day !== today()) {
+    S.daily = { day: today(), c: {}, done: {}, list: genMissions(), all: false };
+    save();
+  }
+}
+function dailyInc(key, n, isMax) {
+  ensureDaily();
+  const c = S.daily.c;
+  c[key] = isMax ? Math.max(c[key] || 0, n) : (c[key] || 0) + (n || 1);
+  S.daily.list.forEach((m, i) => {
+    if (!S.daily.done[i] && (c[m.k] || 0) >= m.n) {
+      S.daily.done[i] = true;
+      addPoint(20); toast('🎯 ミッション達成:' + m.text + '(+20)'); beep(SND_OK);
+    }
+  });
+  if (!S.daily.all && S.daily.list.length && S.daily.list.every((_, i) => S.daily.done[i])) {
+    S.daily.all = true; S.cnt.missionDays++;
+    addPoint(30); toast('🏆 今日のミッション全部達成！ボーナス+30'); beep(SND_UP);
+  }
+  save(); checkBadges();
+}
+function renderMissions() {
+  ensureDaily();
+  const c = S.daily.c;
+  $('missionList').innerHTML = S.daily.list.map((m, i) => {
+    const v = Math.min(c[m.k] || 0, m.n), done = S.daily.done[i];
+    return `<div class="mission ${done ? 'done' : ''}"><div class="mt"><span>${done ? '✅ ' : ''}${esc(m.text)}</span><span>${v} / ${m.n}</span></div><div class="mbar"><i style="width:${v / m.n * 100}%"></i></div></div>`;
+  }).join('') + (S.daily.all ? '<div class="small" style="margin-top:6px">🏆 今日は全部達成！また明日。</div>' : '');
+}
+
+// ===== 段位と昇段試験 =====
+const RANKS = ['10級','9級','8級','7級','6級','5級','4級','3級','2級','1級','初段','二段','三段','四段','五段','六段','七段','八段','九段','十段'];
+function examReq(r) { return (r + 1) * 60; }
+function examModes(r) {
+  const m = r < 5 ? ['iikae', 'imi', 'katakana', 'taigi', 'tatoe']
+          : r < 10 ? ['iikae', 'imi', 'katakana', 'taigi', 'tatoe', 'anaume', 'keigo', 'yomi']
+          : CHOICE_MODES;
+  return m.filter(x => D[x].length);
+}
+function renderRank() {
+  const r = S.rank;
+  $('rankNow').textContent = RANKS[r];
+  const btn = $('examBtn');
+  if (r >= RANKS.length - 1) {
+    btn.classList.add('hidden');
+    $('rankInfo').textContent = '最高段位です。もう道場を開ける。';
+    return;
+  }
+  const need = examReq(r) - S.point;
+  btn.classList.remove('hidden');
+  btn.disabled = need > 0;
+  btn.textContent = need > 0 ? `試験まであと${need}pt` : `🥋「${RANKS[r + 1]}」の昇段試験を受ける`;
+  $('rankInfo').textContent = need > 0
+    ? `ポイントが${examReq(r)}になると「${RANKS[r + 1]}」の昇段試験が受けられます。`
+    : `昇段試験が受けられます！10問中8問正解で「${RANKS[r + 1]}」に昇段。`;
+}
+function startExam() {
+  if (S.rank >= RANKS.length - 1) return;
+  if (S.point < examReq(S.rank)) { alert(`昇段試験はポイントが${examReq(S.rank)}になると受けられます。`); return; }
+  roundKind = 'exam';
+  againFn = goHome;
+  begin(pickWeighted(poolOf(examModes(S.rank)), 10));
+}
+function showExamResult(c, n) {
+  const pass = c >= 8;
+  S.cnt.exams++;
+  const from = RANKS[S.rank];
+  if (pass) { S.rank = Math.min(S.rank + 1, RANKS.length - 1); beep(SND_UP); toast('🥋 昇段！「' + RANKS[S.rank] + '」になった'); }
+  else beep(SND_NG);
+  save(); checkBadges();
+  $('rLabel').textContent = '🥋 昇段試験の結果';
+  $('rScore').textContent = `${c} / ${n}`;
+  $('rComment').textContent = pass
+    ? `合格！「${from}」から「${RANKS[S.rank]}」に昇段だ。`
+    : `不合格。合格は8問以上。間違えた問題は復習に回したから、出直してこい。`;
+  $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = '試験に出た言葉';
+  $('rWords').innerHTML = round.flatMap(q => (q.words || []).map(([w, m]) =>
+    `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').textContent = pass ? 'ホームに戻る' : 'ホームに戻って修行する';
+  $('rAgain').onclick = goHome;
+  show('result');
+}
+
+// ===== 会話シミュレーション =====
+let kCur = null, kTurn = 0, kOk = 0, kPts = 0, kCurA = '', kAnswered = false, kSpoke = false;
+function startKaiwa() {
+  if (!D.kaiwa.length) return;
+  roundKind = 'normal'; played('kaiwa'); stopSpeak();
+  const pool = D.kaiwa.map((q, i) => ({ i, w: S.kplayed[q.t] !== undefined ? 1 : 6 }));
+  kCur = D.kaiwa[pickWeighted(pool, 1)[0].i];
+  kTurn = 0; kOk = 0; kPts = 0;
+  $('kTitle').textContent = kCur.t;
+  $('kScene').textContent = kCur.s;
+  $('kChat').innerHTML = '';
+  $('kEnd').classList.add('hidden');
+  show('kaiwa'); kaiwaTurn();
+}
+function addBubble(cls, name, text) {
+  const d = document.createElement('div');
+  d.className = 'bub ' + cls;
+  d.innerHTML = (name ? `<span class="nm">${esc(name)}</span>` : '') + esc(text);
+  $('kChat').appendChild(d);
+  return d;
+}
+function kaiwaTurn() {
+  const t = kCur.turns[kTurn];
+  kAnswered = false; kSpoke = false; kCurA = t.a;
+  $('kNum').textContent = `${kTurn + 1} / ${kCur.turns.length}往復目`;
+  $('kPoint').textContent = `今回 +${kPts}pt`;
+  addBubble('them', kCur.who || '相手', t.say);
+  const box = $('kChoices'); box.innerHTML = '';
+  shuffle([{ t: t.a, ok: true }].concat(t.n.map(([x, tk]) => ({ t: x, tk })))).forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'choice'; b.textContent = c.t;
+    b.onclick = () => kaiwaAnswer(c);
+    box.appendChild(b);
+  });
+  $('kPlay').classList.remove('hidden');
+  $('kFeedback').classList.add('hidden');
+  justShown();
+  $('kSaidBtn').disabled = false; $('kSaidBtn').textContent = '声に出して言えた！(+3)';
+  $('kNext').textContent = kTurn === kCur.turns.length - 1 ? '結果を見る ▶' : '次へ ▶';
+}
+function kaiwaAnswer(c) {
+  if (kAnswered || tooSoon()) return;
+  kAnswered = true;
+  const t = kCur.turns[kTurn];
+  const ok = !!c.ok;
+  addBubble('me ' + (ok ? 'okb' : 'ngb'), 'あなた', c.t);
+  record('kaiwa:' + kCur.t + '#' + kTurn, ok);
+  const box = $('kTsukkomi');
+  if (ok) {
+    kOk++; kPts += 5; addPoint(5); beep(SND_OK);
+    box.className = 'tsukkomi ok';
+    box.innerHTML = '<div class="who">⭕ いい返し +5pt</div>' + esc(t.why || rand(OK_LINES));
+  } else {
+    beep(SND_NG);
+    box.className = 'tsukkomi ng';
+    box.innerHTML = '<div class="who">❌ 師範のツッコミ</div>' + esc(c.tk || '') +
+      `<div style="margin-top:6px">良い返しは:<b>「${esc(t.a)}」</b></div>` +
+      (t.why ? `<div class="small" style="margin-top:4px">💡 ${esc(t.why)}</div>` : '');
+  }
+  save(); markPracticed();
+  $('kPlay').classList.add('hidden');
+  $('kFeedback').classList.remove('hidden');
+  $('kPoint').textContent = `今回 +${kPts}pt`;
+}
+function kaiwaSaid() {
+  if (kSpoke) return;
+  kSpoke = true; kPts += 3; S.cnt.said++; addPoint(3); dailyInc('said');
+  $('kSaidBtn').disabled = true; $('kSaidBtn').textContent = '✔ 言えた +3pt';
+  $('kPoint').textContent = `今回 +${kPts}pt`;
+}
+function kaiwaNext() {
+  stopSpeak();
+  // 間違えた時は、会話の流れが分かるように良い返しに置きかえて続ける
+  const last = $('kChat').lastElementChild;
+  if (last && last.classList.contains('ngb')) {
+    last.classList.remove('ngb'); last.classList.add('okb');
+    last.innerHTML = '<span class="nm">あなた(良い返し)</span>' + esc(kCur.turns[kTurn].a);
+  }
+  kTurn++;
+  if (kTurn < kCur.turns.length) return kaiwaTurn();
+  const n = kCur.turns.length;
+  if (kOk === n) { kPts += 10; addPoint(10); beep(SND_UP); }
+  S.cnt.kaiwa++;
+  S.kplayed[kCur.t] = Math.max(S.kplayed[kCur.t] || 0, kOk);
+  addWords(kCur.w, true, '');
+  save(); dailyInc('kaiwa'); checkBadges();
+  $('kNum').textContent = '会話おわり';
+  $('kFeedback').classList.add('hidden');
+  $('kPlay').classList.add('hidden');
+  $('kScore').textContent = `${kOk} / ${n}`;
+  $('kComment').textContent = kOk === n ? '完璧な会話だ。全問正解ボーナス+10！' :
+    kOk >= n - 1 ? 'いい会話だった。あと一歩。' : '会話は慣れ。良い返しを声に出して覚えろ。';
+  $('kWords').innerHTML = '<div class="small">📌 この会話で覚えたい言葉</div>' +
+    (kCur.w || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
+  $('kEnd').classList.remove('hidden');
+  $('kPoint').textContent = `今回 +${kPts}pt`;
 }
 
 // ===== 言葉帳 =====
@@ -1196,7 +1556,7 @@ function showRecord() {
     acc[m] = acc[m] || { ok:0, all:0 };
     acc[m].ok += st.ok; acc[m].all += st.ok + st.ng;
   });
-  const rows = CHOICE_MODES.concat(['narabe']).filter(m => acc[m] && acc[m].all).map(m =>
+  const rows = CHOICE_MODES.concat(['narabe', 'kaiwa']).filter(m => acc[m] && acc[m].all).map(m =>
     `<div class="acc-row"><span>${esc(MODE_NAME[m])}</span><span>${Math.round(acc[m].ok / acc[m].all * 100)}%(${acc[m].all}問)</span></div>`);
   $('accList').innerHTML = rows.join('') || '<div class="small">まだ記録がありません。</div>';
 
@@ -1217,13 +1577,22 @@ function setN(n) { S.settings.n = n; save(); renderSettings(); }
 function setSound(on) { S.settings.sound = on; save(); renderSettings(); if (on) beep(SND_OK); }
 function exportData() {
   const blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
-  const a = document.createElement('a');
   const d = new Date();
+  const fname = `iikae_dojo_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
+  try {
+    const file = new File([blob], fname, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: '言い換え道場の記録' })
+        .then(() => toast('💾 記録を保存しました')).catch(() => {});
+      return;
+    }
+  } catch (e) {}
+  const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `言い換え道場_記録_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
   a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast('💾 記録を保存しました(ダウンロードフォルダ)');
+  setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+  toast('💾 記録を保存しました(パソコンは「ダウンロード」、iPhoneは「ファイル」アプリの中)');
 }
 function importData(input) {
   const file = input.files[0]; if (!file) return;
@@ -1231,18 +1600,27 @@ function importData(input) {
   r.onload = () => {
     try {
       const data = JSON.parse(r.result);
-      if (typeof data.point !== 'number') throw new Error('形が違う');
-      if (!confirm(`この記録(${data.point}ポイント)に置きかえます。いまの記録は消えます。よろしいですか？`)) { input.value = ''; return; }
-      localStorage.setItem(KEY, JSON.stringify(data));
-      S = load(); toast('📂 記録を戻しました'); goHome();
+      if (!isObj(data) || typeof data.point !== 'number') throw new Error('形が違う');
+      const fixed = normalize(data);   // 先に形を確かめてから、置きかえる
+      if (!confirm(`この記録(${fixed.point}ポイント)に置きかえます。いまの記録は消えます。よろしいですか？`)) { input.value = ''; return; }
+      S = fixed; save(); toast('📂 記録を戻しました'); goHome();
     } catch (e) { alert('このファイルは読み込めませんでした。'); }
     input.value = '';
   };
   r.readAsText(file);
 }
 
+// アプリを開いたまま日付が変わっても、表に戻った時にホームを今日の内容にする
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !$('home').classList.contains('hidden')) renderHome();
+});
+
 // ===== スマホで電波なしでも動くようにする(ネット上で開いた時だけ) =====
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  const hadSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadSW) toast('✨ 新しい問題が届きました。アプリを開き直すと反映されます');
+  });
   navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => {
     $('offlineNote').textContent = '📶 準備OK:このアプリは電波がなくても遊べます';
   }).catch(() => {});
