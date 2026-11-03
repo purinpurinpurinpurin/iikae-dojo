@@ -143,6 +143,20 @@
   .mbar i { display: block; height: 100%; background: var(--ok); }
   .rank-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
   .rank-big { font-size: 26px; font-weight: bold; color: var(--ink); }
+  .course.locked, .boss-card.locked { opacity: .5; }
+  .boss-top { display: flex; gap: 14px; align-items: center; }
+  .boss-icon { font-size: 64px; line-height: 1; }
+  .boss-icon-s { font-size: 40px; line-height: 1; }
+  .hp { height: 14px; background: #eee; border-radius: 7px; overflow: hidden; margin: 4px 0 2px; }
+  .hp i { display: block; height: 100%; transition: width .4s; }
+  .hp.boss i { background: linear-gradient(90deg, #e53935, #ff7043); }
+  .hp.me i { background: linear-gradient(90deg, #43a047, #9ccc65); }
+  .say { background: #2b2b2b; color: #fff; border-radius: 14px; padding: 10px 14px; margin: 10px 0; font-size: 16px; position: relative; }
+  .combo { color: var(--main); font-weight: bold; min-height: 1.2em; }
+  .shake { animation: shake .4s; }
+  @keyframes shake { 0%,100% { transform: none; } 25% { transform: translateX(-8px) rotate(-6deg); } 75% { transform: translateX(8px) rotate(6deg); } }
+  .hurt { animation: hurt .4s; }
+  @keyframes hurt { 0% { background: var(--ng-soft); } 100% { background: #fff; } }
   .seg button.on { border-color: var(--main); background: var(--main-soft); font-weight: bold; }
 </style>
 </head>
@@ -205,6 +219,7 @@
   <section id="quiz" class="hidden">
     <div class="progress"><span id="qNum"></span><span id="qPoint"></span></div>
     <div class="bar"><i id="qBar"></i></div>
+    <div class="center timer hidden" id="qTimer"></div>
     <div class="card">
       <span class="cat" id="qCat"></span>
       <div class="scene" id="qScene"></div>
@@ -225,7 +240,7 @@
           </div>
           <div class="heard" id="heard"></div>
         </div>
-        <button class="next" onclick="nextQ()">次へ ▶</button>
+        <button class="next" id="qNext" onclick="nextQ()">次へ ▶</button>
       </div>
     </div>
     <button class="ghost" onclick="goHome()">やめてホームに戻る</button>
@@ -341,6 +356,54 @@
     <button class="ghost" onclick="goHome()">ホームに戻る</button>
   </section>
 
+  <!-- ===== 難関コース ===== -->
+  <section id="course" class="hidden">
+    <h2>🔥 難関コース</h2>
+    <div class="small">上級をクリアすると超上級、超上級をクリアすると地獄が開きます。</div>
+    <div id="courseList"></div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== ボス戦 ===== -->
+  <section id="bossmap" class="hidden">
+    <h2>⚔ ボス戦</h2>
+    <div class="small">正解すると攻撃、間違えると反撃をくらう。連続正解でダメージが増える。体力が0になる前に倒せ。</div>
+    <div id="bossList"></div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+  <section id="boss" class="hidden">
+    <div class="card" id="bArena">
+      <div class="boss-top">
+        <div class="boss-icon" id="bIcon"></div>
+        <div style="flex:1">
+          <div class="rank-big" style="font-size:20px" id="bName"></div>
+          <div class="hp boss"><i id="bHpBar"></i></div><div class="small" id="bHpText"></div>
+        </div>
+      </div>
+      <div class="say" id="bSay"></div>
+      <div class="small">あなたの体力</div>
+      <div class="hp me"><i id="meHpBar"></i></div><div class="small" id="meHpText"></div>
+      <div class="combo" id="bCombo"></div>
+      <div class="center timer hidden" id="bTimer"></div>
+      <span class="cat" id="bCat"></span>
+      <div class="scene" id="bScene"></div>
+      <div class="prompt" id="bPrompt"></div>
+      <div class="ask" id="bAsk"></div>
+      <div id="bChoices"></div>
+      <div id="bFeedback" class="hidden">
+        <div class="tsukkomi" id="bMsg"></div>
+        <div class="words" id="bWords"></div>
+        <button class="next" id="bNext" onclick="bossNext()">次の攻撃 ▶</button>
+      </div>
+    </div>
+    <div class="card center hidden" id="bEnd">
+      <div class="score" id="bEndTitle"></div>
+      <div id="bEndText" style="margin:8px 0"></div>
+      <button class="big" onclick="showBossMap()">ボス一覧に戻る</button>
+    </div>
+    <button class="ghost" onclick="goHome()">逃げる(ホームに戻る)</button>
+  </section>
+
   <!-- ===== 言葉帳 ===== -->
   <section id="book" class="hidden">
     <h2>📖 言葉帳</h2>
@@ -425,6 +488,10 @@
 <script src="data/kaiwa1.js"></script>
 <script src="data/kaiwa2.js"></script>
 <script src="data/kaiwa3.js"></script>
+<script src="data/hard_imi.js"></script>
+<script src="data/hard_yomi.js"></script>
+<script src="data/hard_koji.js"></script>
+<script src="data/hard_iikae.js"></script>
 
 <script>
 // ===== データをまとめる =====
@@ -443,14 +510,19 @@ const D = {
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || []),
   kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || []),
+  h_imi:    window.HARD_IMI || [],
+  h_yomi:   window.HARD_YOMI || [],
+  h_koji:   window.HARD_KOJI || [],
+  h_iikae:  window.HARD_IIKAE || [],
 };
+const HARD_MODES = ['h_imi', 'h_yomi', 'h_koji', 'h_iikae'];
 const CHOICE_MODES = ['iikae', 'imi', 'yomi', 'katakana', 'taigi', 'anaume', 'goyou', 'keigo', 'tatoe'];
 
 // 問題ごとの見分け用の名前(問題を足したり消したりしても成績がずれないように、中身から作る)
 function keyOf(mode, q) {
   switch (mode) {
-    case 'iikae': case 'keigo': case 'tatoe': return mode + ':' + q.l + '|' + q.a;
-    case 'imi': case 'yomi': case 'katakana': return mode + ':' + q.w;
+    case 'iikae': case 'keigo': case 'tatoe': case 'h_iikae': return mode + ':' + q.l + '|' + q.a;
+    case 'imi': case 'yomi': case 'katakana': case 'h_imi': case 'h_yomi': case 'h_koji': return mode + ':' + q.w;
     case 'taigi': case 'goyou': return mode + ':' + q.q;
     case 'anaume': return mode + ':' + q.s;
     case 'narabe': return mode + ':' + q.t;
@@ -475,12 +547,18 @@ const MODES = [
   { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
   { id:'kaiwa',    g:2, icon:'🗨', name:'会話シミュレーション', desc:'相手のセリフに、いちばん良い返しを選んで4往復', start:() => startKaiwa() },
   { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
+  { id:'course',   g:3, icon:'🔥', name:'難関コース',     desc:'上級・超上級・地獄の3段階', start:() => showCourse() },
+  { id:'boss',     g:3, icon:'⚔', name:'ボス戦',         desc:'6体のボスを言葉で倒せ', start:() => showBossMap() },
+  { id:'endless',  g:3, icon:'♾', name:'連続正解チャレンジ', desc:'間違えるまで続ける', start:() => startEndless() },
   { id:'time',     g:3, icon:'⏱', name:'60秒タイムアタック', desc:'説明なしで何問とけるか勝負', start:() => startTime() },
 ];
-const GROUPS = ['📘 言葉を増やす', '🛠 使いこなす', '🗣 話す練習', '🏆 腕だめし'];
+const GROUPS = ['📘 言葉を増やす', '🛠 使いこなす', '🗣 話す練習', '🏆 腕だめし・挑戦'];
 const MODE_NAME = {}; MODES.forEach(m => MODE_NAME[m.id] = m.icon + ' ' + m.name);
+Object.assign(MODE_NAME, { h_imi:'🔥 難関・意味', h_yomi:'🔥 難関・読み', h_koji:'🔥 難関・故事成語', h_iikae:'🔥 難関・言い換え' });
 function modeCount(id) {
-  if (id === 'time') return CHOICE_MODES.reduce((s, m) => s + D[m].length, 0);
+  if (id === 'time' || id === 'endless') return CHOICE_MODES.reduce((s, m) => s + D[m].length, 0);
+  if (id === 'course') return HARD_MODES.reduce((s, m) => s + D[m].length, 0);
+  if (id === 'boss') return BOSSES.length;
   return D[id].length;
 }
 
@@ -558,6 +636,13 @@ const BADGES = [
   ['mission1', '🎯', 'ミッション達成', '今日のミッションを全部達成', s => s.cnt.missionDays >= 1],
   ['mission10','🏹', 'ミッション10日', 'ミッション全達成が10日',     s => s.cnt.missionDays >= 10],
   ['kaiwa10',  '🗨', '会話上手',       '会話シミュレーションを10本', s => s.cnt.kaiwa >= 10],
+  ['endless20','♾', '20問連続',       '連続正解チャレンジで20問連続', s => s.bestStreak >= 20],
+  ['endless50','🌀', '50問連続',       '連続正解チャレンジで50問連続', s => s.bestStreak >= 50],
+  ['course1',  '🔥', '上級突破',       '難関コース「上級」をクリア',   s => !!(s.course[1] || {}).cleared],
+  ['course2',  '☄', '超上級突破',     '難関コース「超上級」をクリア', s => !!(s.course[2] || {}).cleared],
+  ['course3',  '💀', '地獄の生還者',   '難関コース「地獄」をクリア',   s => !!(s.course[3] || {}).cleared],
+  ['boss1',    '⚔', '初勝利',         'ボスを初めて倒した',           s => Object.values(s.boss).some(b => b && b.win)],
+  ['bossAll',  '🐉', '言葉の神殺し',   'ラスボス「言葉の神」を倒した', s => !!(s.boss.b6 || {}).win],
   ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
 ];
 
@@ -565,7 +650,7 @@ const BADGES = [
 const KEY = 'iikae_dojo_v1';
 function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
-    days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{},
+    days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
     daily:{ day:'', c:{}, done:{}, list:[], all:false },
     cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0 } };
 }
@@ -575,8 +660,8 @@ function normalize(raw) {
   if (!isObj(raw)) throw new Error('形が違う');
   const b = blank();
   const s = Object.assign(b, raw);
-  for (const k of ['stats', 'words', 'days', 'badges', 'played', 'kplayed']) if (!isObj(s[k])) s[k] = {};
-  for (const k of ['point', 'streak', 'maxStreak', 'best', 'rank']) { s[k] = Number(s[k]); if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; }
+  for (const k of ['stats', 'words', 'days', 'badges', 'played', 'kplayed', 'course', 'boss']) if (!isObj(s[k])) s[k] = {};
+  for (const k of ['point', 'streak', 'maxStreak', 'best', 'rank', 'bestStreak']) { s[k] = Number(s[k]); if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; }
   s.rank = Math.min(Math.floor(s.rank), 19);
   s.settings = Object.assign(blank().settings, isObj(s.settings) ? s.settings : {});
   s.cnt = Object.assign(blank().cnt, isObj(s.cnt) ? s.cnt : {});
@@ -643,12 +728,12 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
 }
-function goHome() { stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); renderHome(); show('home'); }
+function goHome() { stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); stopQTimer(); stopBossTimer(); renderHome(); show('home'); }
 // 画面が切り替わった直後0.4秒は、選択肢を押しても反応しない(「次へ」の二度押し対策)
 let shownAt = 0;
 function justShown() { shownAt = Date.now(); }
@@ -787,10 +872,21 @@ function highlight(text, part) {
   return p && t.includes(p) ? t.replace(p, '<mark>' + p + '</mark>') : t;
 }
 function choicesOf(q) { return [{ t:q.a, ok:true }].concat((q.n || []).map(([t, tk]) => ({ t, tk }))); }
+const BASE_MODE = { h_imi:'imi', h_yomi:'yomi', h_koji:'imi', h_iikae:'iikae' };
+const HARD_CAT = { h_imi:'🔥 難関・意味', h_yomi:'🔥 難関・読み', h_koji:'🔥 難関・故事成語/四字熟語', h_iikae:'🔥 難関・言い換え' };
 function makeQ(mode, i) {
+  const r = makeQBase(mode, i);
+  if (HARD_CAT[mode]) {
+    const q = D[mode][i];
+    r.cat = HARD_CAT[mode] + '(' + ['', '上級', '超上級', '地獄'][q.lv || 1] + ')';
+    if (mode === 'h_koji') { r.ask = 'この言葉の意味は？'; if (q.o) r.exp = '由来:' + q.o; }
+  }
+  return r;
+}
+function makeQBase(mode, i) {
   const q = D[mode][i];
   const base = { id: IDS[mode][i], mode, scene:'', exp:'' };
-  switch (mode) {
+  switch (BASE_MODE[mode] || mode) {
     case 'iikae': case 'keigo': case 'tatoe':
       return Object.assign(base, { cat: (mode === 'tatoe' ? 'たとえ上手「' : '「') + q.c + '」', scene: q.s, prompt: highlight(q.l, q.k),
         ask: mode === 'keigo' ? '↑ 大人ならどう言う？' : mode === 'tatoe' ? '↑ ぴったりのたとえはどれ？' : '↑ これ、どう言い換える？いちばん合う言葉を選んで。',
@@ -878,7 +974,7 @@ function startMix() {
 function startReview() {
   roundKind = 'review';
   againFn = startReview;
-  const pool = poolOf(CHOICE_MODES, true);
+  const pool = poolOf(CHOICE_MODES.concat(HARD_MODES), true);
   if (!pool.length) { alert('苦手な問題はまだありません。まずはほかの遊び方で遊んでみよう。'); return; }
   begin(pickWeighted(pool, S.settings.n));
 }
@@ -888,12 +984,21 @@ function begin(picks) {
 }
 
 function renderQ() {
-  stopListen();
+  stopListen(); stopSpeak();
   answered = false; spoke = false;
   current = round[qi];
-  $('qNum').textContent = (roundKind === 'exam' ? '🥋 昇段試験 ' : '') + `${qi + 1} / ${round.length}問目` + (roundKind === 'exam' ? '(8問正解で合格)' : '');
+  if (roundKind === 'course') {
+    $('qNum').textContent = `${courseCur.icon} ${courseCur.name} ${qi + 1} / ${round.length}問目` + (courseCur.survival ? '(1問でも間違えたら終了)' : `(${courseCur.pass}問正解で合格)`);
+  } else if (roundKind === 'endless') {
+    $('qNum').textContent = `♾ 連続正解 ${qi + 1}問目(最高 ${S.bestStreak}問)`;
+  } else {
+    $('qNum').textContent = (roundKind === 'exam' ? '🥋 昇段試験 ' : '') + `${qi + 1} / ${round.length}問目` + (roundKind === 'exam' ? '(8問正解で合格)' : '');
+  }
   $('qPoint').textContent = `今回 +${roundPoint}pt`;
-  $('qBar').style.width = (qi / round.length * 100) + '%';
+  $('qBar').style.width = (roundKind === 'endless' ? Math.min(100, qi / Math.max(S.bestStreak, 10) * 100) : qi / round.length * 100) + '%';
+  $('qNext').textContent = '次へ ▶';
+  stopQTimer();
+  if (roundKind === 'course' && courseCur.time) startQTimer(courseCur.time);
   $('qCat').textContent = current.cat;
   $('qScene').textContent = current.scene;
   $('qScene').classList.toggle('hidden', !current.scene);
@@ -914,9 +1019,11 @@ function renderQ() {
 }
 
 function answer(btn, c) {
-  if (answered || tooSoon()) return;
+  if (answered || (btn && tooSoon())) return;
   answered = true;
+  stopQTimer();
   const ok = !!c.ok;
+  lastOk = ok;
   document.querySelectorAll('#qChoices .choice').forEach(b => {
     b.disabled = true;
     if (b.textContent === current.answer) b.classList.add('right');
@@ -925,12 +1032,13 @@ function answer(btn, c) {
   const exp = current.exp ? '<div class="small" style="margin-top:6px">💡 ' + esc(current.exp) + '</div>' : '';
   record(current.id, ok);
   if (ok) {
-    roundCorrect++; roundPoint += 10; addPoint(10); beep(SND_OK);
+    const gain = roundKind === 'course' ? courseCur.pts : roundKind === 'endless' ? 3 : 10;
+    roundCorrect++; roundPoint += gain; addPoint(gain); beep(SND_OK);
     box.className = 'tsukkomi ok';
-    box.innerHTML = '<div class="who">⭕ 正解 +10pt</div>' + esc(rand(OK_LINES)) + exp;
+    box.innerHTML = '<div class="who">⭕ 正解 +' + gain + 'pt</div>' + esc(rand(OK_LINES)) + exp;
   } else {
     beep(SND_NG);
-    btn.classList.add('wrong');
+    if (btn) btn.classList.add('wrong');
     box.className = 'tsukkomi ng';
     box.innerHTML = '<div class="who">❌ 師範のツッコミ</div>' + esc(c.tk || '') +
       '<br><span class="small">正解は「' + esc(current.answer) + '」。</span>' + exp;
@@ -944,6 +1052,10 @@ function answer(btn, c) {
   $('qSpeak').classList.toggle('hidden', !current.speak);
   $('qResult').classList.remove('hidden');
   $('qPoint').textContent = `今回 +${roundPoint}pt`;
+  const ends = !ok && (roundKind === 'endless' || (roundKind === 'course' && courseCur.survival));
+  if (roundKind === 'endless' && ok && roundCorrect > (S.bestStreak || 0)) { S.bestStreak = roundCorrect; save(); checkBadges(); }
+  if (roundKind === 'course' && (ends || qi === round.length - 1)) courseSettle(roundCorrect, qi + 1);
+  if (ends || qi === round.length - 1 && roundKind !== 'endless') $('qNext').textContent = '結果を見る ▶';
 }
 
 function saidIt() {
@@ -954,6 +1066,12 @@ function saidIt() {
 }
 
 function nextQ() {
+  stopQTimer();
+  if (roundKind === 'endless') {
+    if (!lastOk) return showEndlessResult(roundCorrect);
+    const p = endlessPick(); round.push(makeQ(p.m, p.i));
+  }
+  if (roundKind === 'course' && courseCur.survival && !lastOk) return showCourseResult(roundCorrect, qi + 1);
   qi++;
   if (qi >= round.length) return showRoundResult();
   renderQ();
@@ -964,6 +1082,7 @@ function showRoundResult() {
   const c = roundCorrect, n = round.length;
   $('rAgain').textContent = 'もう1回';
   if (roundKind === 'exam') return showExamResult(c, n);
+  if (roundKind === 'course') return showCourseResult(c, n);
   if (c === n && n >= 5) { S.cnt.perfect++; save(); checkBadges(); beep(SND_UP); }
   $('rLabel').textContent = '今回の結果';
   $('rScore').textContent = `${c} / ${n}`;
@@ -976,6 +1095,7 @@ function showRoundResult() {
   $('rWordsLabel').textContent = '今回出てきた言葉';
   $('rWords').innerHTML = round.flatMap(q => (q.words || []).map(([w, m]) =>
     `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').textContent = 'もう1回';
   $('rAgain').onclick = againFn;
   show('result');
 }
@@ -1057,6 +1177,7 @@ function nextNarabe() {
   $('rWordsLabel').textContent = '今回出てきた言葉';
   $('rWords').innerHTML = nRound.flatMap(i => (D.narabe[i].w || []).map(([w, m]) =>
     `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').textContent = 'もう1回';
   $('rAgain').onclick = againFn;
   show('result');
 }
@@ -1131,6 +1252,7 @@ function endTime(quit) {
     `<div class="book-item"><div class="small">${esc(q.cat)}:${esc(q.prompt.replace(/<[^>]+>/g, ''))}</div><b>正解:${esc(q.answer)}</b>` +
     (q.words || []).map(([w, m]) => `<div class="m">${esc(w)} … ${esc(m)}</div>`).join('') + '</div>').join('') ||
     '<div class="small">ノーミス。やるじゃないか。</div>';
+  $('rAgain').textContent = 'もう1回';
   $('rAgain').onclick = againFn;
   show('result');
 }
@@ -1508,6 +1630,298 @@ function kaiwaNext() {
   $('kPoint').textContent = `今回 +${kPts}pt`;
 }
 
+// ===== 1問ごとの制限時間(難関コース用) =====
+let qTimerId = null;
+function stopQTimer() { if (qTimerId) { clearInterval(qTimerId); qTimerId = null; } $('qTimer').classList.add('hidden'); }
+function startQTimer(sec) {
+  stopQTimer();
+  let left = sec;
+  const el = $('qTimer');
+  el.classList.remove('hidden'); el.textContent = '⏱ ' + left;
+  qTimerId = setInterval(() => {
+    left--; el.textContent = '⏱ ' + Math.max(left, 0);
+    if (left <= 3 && left > 0) beep([[880, .05]]);
+    if (left <= 0) {
+      stopQTimer();
+      if (!answered) answer(null, { t: '(時間切れ)', tk: '時間切れ。迷った時点で負けだ。' });
+    }
+  }, 1000);
+}
+
+// ===== 難関コース =====
+const COURSES = [
+  { lv:1, name:'上級',   icon:'🔥',   n:10, pass:8,  time:0,  pts:15, bonus:50,  desc:'社会人でも迷うレベル。10問中8問正解で合格。' },
+  { lv:2, name:'超上級', icon:'🔥🔥', n:10, pass:8,  time:15, pts:20, bonus:100, desc:'教養レベルの熟語・故事成語。1問15秒。10問中8問正解で合格。' },
+  { lv:3, name:'地獄',   icon:'💀',   n:20, pass:20, time:10, pts:30, bonus:300, survival:true, desc:'1問でも間違えたら即終了。1問10秒で20問を走り切ればクリア。' },
+];
+let courseCur = null, lastOk = true, courseSettled = null;
+// コースの決着がついた時点で、クリアと最高記録を保存する(結果画面を見ずに閉じても残る)
+function courseSettle(c, answeredN) {
+  if (courseSettled) return courseSettled;
+  const cc = courseCur, st = courseState(cc.lv);
+  const cleared = cc.survival ? c >= cc.n : c >= cc.pass;
+  const first = cleared && !st.cleared;
+  st.best = Math.max(st.best || 0, c);
+  if (cleared) st.cleared = true;
+  S.course[cc.lv] = st;
+  let bonus = 0;
+  if (first) { bonus = cc.bonus; addPoint(bonus); toast(`🏆 ${cc.name}コース初クリア！+${bonus}pt`); }
+  save(); checkBadges();
+  courseSettled = { cleared, first, bonus, c, answeredN };
+  return courseSettled;
+}
+function courseState(lv) { const c = S.course[lv]; return isObj(c) ? c : { cleared:false, best:0, tries:0 }; }
+function bossState(id) { const b = S.boss[id]; return isObj(b) ? b : {}; }
+function courseUnlocked(lv) { return lv === 1 || courseState(lv - 1).cleared; }
+function hardCount(lv) { return HARD_MODES.reduce((s, m) => s + D[m].filter(q => (q.lv || 1) === lv).length, 0); }
+function showCourse() {
+  $('courseList').innerHTML = COURSES.map(c => {
+    const st = courseState(c.lv), open = courseUnlocked(c.lv), cnt = hardCount(c.lv);
+    const status = st.cleared ? '✅ クリア済み' : (st.tries ? `挑戦${st.tries}回` : '未挑戦');
+    const best = c.survival ? `最高 ${st.best}問連続` : `最高 ${st.best}/${c.n}`;
+    return `<div class="card course ${open ? '' : 'locked'}">
+      <div class="rank-row"><div><div class="rank-big">${c.icon} ${esc(c.name)}</div><div class="small">${esc(c.desc)}</div>
+      <div class="small">${status} ・ ${best} ・ 問題${cnt}問 ・ 初クリアで+${c.bonus}pt</div></div></div>
+      ${open ? (cnt ? `<button class="big" onclick="startCourse(${c.lv})">挑戦する</button>` : '<div class="small">問題を準備中です</div>')
+             : `<div class="small" style="margin-top:8px">🔒「${esc(COURSES[c.lv - 2].name)}」をクリアすると挑戦できます</div>`}
+    </div>`;
+  }).join('');
+  show('course');
+}
+function startCourse(lv) {
+  const c = COURSES[lv - 1];
+  if (!courseUnlocked(lv)) return;
+  const pool = poolOf(HARD_MODES).filter(x => (D[x.m][x.i].lv || 1) === lv);
+  if (!pool.length) return;
+  played('course');
+  roundKind = 'course'; courseCur = c; lastOk = true; courseSettled = null;
+  againFn = () => startCourse(lv);
+  const st = courseState(lv); st.tries++; S.course[lv] = st; save();
+  begin(pickWeighted(pool, c.n));
+}
+function showCourseResult(c, answeredN) {
+  const cc = courseCur, st = courseState(cc.lv);
+  const { cleared, first, bonus } = courseSettle(c, answeredN);
+  beep(cleared ? SND_UP : SND_NG);
+  $('rLabel').textContent = `${cc.icon} 難関コース「${cc.name}」の結果`;
+  $('rScore').textContent = cc.survival ? `${c}問連続` : `${c} / ${answeredN}`;
+  $('rComment').textContent = cleared
+    ? (cc.lv === 3 ? '地獄を走り切った。もう誰にも語彙力が少ないなんて言わせるな。' : `合格！${first ? '次のコースが開いた。' : 'さすがだ。'}`)
+    : (cc.survival ? `${c + 1}問目でやられた。地獄は甘くない。最高記録は${st.best}問連続。` : `不合格。合格は${cc.pass}問以上。間違えた言葉は苦手復習に入れておいた。`);
+  $('rPoint').textContent = `今回 +${roundPoint + bonus}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = '今回出てきた言葉';
+  $('rWords').innerHTML = round.slice(0, answeredN).flatMap(q => (q.words || []).map(([w, m]) =>
+    `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').textContent = 'もう一度挑戦';
+  $('rAgain').onclick = againFn;
+  show('result');
+}
+
+// ===== 連続正解チャレンジ =====
+let endlessUsed = new Set(), endlessPrevBest = 0;
+function endlessPick() {
+  let pool = poolOf(CHOICE_MODES).filter(x => !endlessUsed.has(x.id));
+  if (!pool.length) { endlessUsed = new Set(); pool = poolOf(CHOICE_MODES); }
+  const p = pickWeighted(pool, 1)[0];
+  endlessUsed.add(p.id);
+  return p;
+}
+function startEndless() {
+  played('endless');
+  roundKind = 'endless'; lastOk = true; endlessUsed = new Set(); endlessPrevBest = S.bestStreak || 0;
+  againFn = startEndless;
+  begin([endlessPick()]);
+}
+function showEndlessResult(c) {
+  const newBest = c > endlessPrevBest;
+  S.bestStreak = Math.max(S.bestStreak || 0, c);
+  save(); checkBadges();
+  beep(newBest ? SND_UP : SND_NG);
+  $('rLabel').textContent = '♾ 連続正解チャレンジの結果';
+  $('rScore').textContent = `${c}問連続`;
+  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.bestStreak}問。あと少しだ。`;
+  $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
+  const last = round[round.length - 1];
+  $('rWordsLabel').textContent = '最後に間違えた問題';
+  $('rWords').innerHTML = last ? `<div class="book-item"><div class="small">${esc(last.cat)}:${esc(last.prompt.replace(/<[^>]+>/g, ''))}</div><b>正解:${esc(last.answer)}</b>` +
+    (last.words || []).map(([w, m]) => `<div class="m">${esc(w)} … ${esc(m)}</div>`).join('') + '</div>' : '';
+  $('rAgain').textContent = 'もう1回';
+  $('rAgain').onclick = againFn;
+  show('result');
+}
+
+// ===== ボス戦 =====
+const BOSSES = [
+  { id:'b1', name:'「やばい」魔人', icon:'😈', hp:100, modes:['iikae'], time:0, hurt:25,
+    intro:'やばい、やばい、全部やばい！お前の語彙も、やばいくらい少ないんだろう？',
+    hit:['ぐぬっ…「やばい」以外の言葉を使うとは…', 'その言葉、効くぅ！', 'やば…じゃなくて、痛い！'],
+    taunt:['ほらな、結局やばいんだよ！', '言葉が出てこないか？やばいな！', 'その程度か。やばいな！'],
+    lose:'ば、ばかな…やばい以外の言葉で倒されるなんて…やば…' },
+  { id:'b2', name:'カタカナ大魔王', icon:'🦹', hp:100, modes:['katakana', 'taigi'], time:0, hurt:25,
+    intro:'お前の日本語、エビデンスがないんだよ。まずはコンセンサスを取ってから来な。',
+    hit:['ノー！そのワード、クリティカルだ！', 'ペンディング…できないダメージ…', 'オーマイガー！'],
+    taunt:['フィードバックしてやろう。お前は弱い！', 'リスケして出直しな！', 'アジェンダが甘いんだよ！'],
+    lose:'マイ…ブランドが…毀損…された…' },
+  { id:'b3', name:'誤用の亡霊', icon:'👻', hp:120, modes:['goyou', 'yomi'], time:20, hurt:25,
+    intro:'言い間違いを笑われた者たちの怨念…お前も道連れにしてやる…',
+    hit:['ぎゃあああ…正しい言葉がしみる…', 'なぜ…なぜ間違えない…', '成仏…しそう…'],
+    taunt:['ひっひっひ…お前も間違えたな…', 'こっちの世界へおいで…', 'その言い間違い、末代まで語り継いでやる…'],
+    lose:'正しい言葉…あたたかい…やっと…成仏…できる…' },
+  { id:'b4', name:'敬語の鬼', icon:'👹', hp:120, modes:['keigo', 'anaume'], time:20, hurt:25,
+    intro:'「了解っす」で済ませる者は、この門を通さぬ。',
+    hit:['ぬうっ…見事な言葉づかい…', 'その丁寧さ、身にしみる…', '社会人の鑑か…！'],
+    taunt:['取引先なら今ので終わりだ！', '出直してまいれ！', 'それで頭を下げたつもりか！'],
+    lose:'…お見それいたしました。どうぞ、お通りください。' },
+  { id:'b5', name:'慣用句仙人', icon:'🧙', hp:140, modes:['anaume', 'tatoe', 'imi'], time:15, hurt:30,
+    intro:'ふぉっふぉっ。言葉の引き出しは、年季が違うぞい。',
+    hit:['ほう、やりおる…', '舌を巻いたわい…', '目から鱗じゃ…'],
+    taunt:['青二才め、ふぉっふぉっ', '百年早いわい', '出直してくるがよい'],
+    lose:'あっぱれじゃ…わしの引き出しを、全部持っていくがよい…' },
+  { id:'b6', name:'言葉の神', icon:'🐉', hp:200, modes:null, time:15, hurt:34, final:true,
+    intro:'よくぞここまで来た、人の子よ。だが、我が言葉の前にひれ伏すがよい。',
+    hit:['ほう…人の子にしては、やる…', 'その語彙…どこで磨いた…', '我が鱗に…傷を…'],
+    taunt:['ひれ伏せ！', 'その程度の語彙で、神に挑むか！', '言葉は、そう甘くない'],
+    lose:'見事だ…お前の言葉は、もう誰よりも強い。語彙の神の座を、お前に譲ろう…' },
+];
+function bossModes(b) { return (b.modes || HARD_MODES).filter(m => D[m].length); }
+function bossUnlocked(i) { return i === 0 || !!bossState(BOSSES[i - 1].id).win; }
+function showBossMap() {
+  $('bossList').innerHTML = BOSSES.map((b, i) => {
+    const st = bossState(b.id), open = bossUnlocked(i), ok = bossModes(b).length > 0;
+    return `<div class="card boss-card ${open ? '' : 'locked'}">
+      <div class="rank-row"><div style="display:flex;gap:12px;align-items:center"><div class="boss-icon-s">${open ? b.icon : '❓'}</div>
+      <div><div class="rank-big" style="font-size:20px">${open ? esc(b.name) : '???'}</div>
+      <div class="small">体力${b.hp}${b.time ? ' ・ 1問' + b.time + '秒' : ''}${st.win ? ' ・ ✅ 撃破済み' : ''}${st.tries ? ' ・ 挑戦' + st.tries + '回' : ''}</div></div></div>
+      ${open && ok ? `<button class="icon-btn" onclick="startBoss(${i})">⚔ 挑む</button>` : ''}</div>
+      ${open ? '' : '<div class="small" style="margin-top:6px">🔒 前のボスを倒すと現れる</div>'}
+    </div>`;
+  }).join('');
+  show('bossmap');
+}
+let B = null; // 今のボス戦の状態
+let bossTimerId = null;
+function stopBossTimer() { if (bossTimerId) { clearInterval(bossTimerId); bossTimerId = null; } }
+function startBoss(i) {
+  const b = BOSSES[i];
+  if (!bossUnlocked(i)) return;
+  played('boss'); roundKind = 'boss';
+  const st = bossState(b.id); st.tries = (st.tries || 0) + 1; S.boss[b.id] = st; save();
+  B = { i, b, hp: b.hp, me: 100, combo: 0, used: new Set(), q: null, done: false, answered: false, pts: 0, ok: 0, ng: 0 };
+  $('bIcon').textContent = b.icon;
+  $('bName').textContent = b.name;
+  $('bEnd').classList.add('hidden');
+  $('bArena').classList.remove('hidden');
+  bossSay(b.intro);
+  show('boss'); bossHp(); bossQ();
+}
+function bossSay(t) { $('bSay').textContent = t; }
+function bossHp() {
+  $('bHpBar').style.width = Math.max(0, B.hp / B.b.hp * 100) + '%';
+  $('bHpText').textContent = `${Math.max(0, B.hp)} / ${B.b.hp}`;
+  $('meHpBar').style.width = Math.max(0, B.me) + '%';
+  $('meHpText').textContent = `${Math.max(0, B.me)} / 100`;
+  $('bCombo').textContent = B.combo >= 2 ? `🔥 ${B.combo}連続！` : '';
+}
+function bossQ() {
+  stopBossTimer();
+  let pool = poolOf(bossModes(B.b)).filter(x => !B.used.has(x.id));
+  if (!pool.length) { B.used = new Set(); pool = poolOf(bossModes(B.b)); }
+  const p = pickWeighted(pool, 1)[0];
+  B.used.add(p.id);
+  B.q = makeQ(p.m, p.i); B.answered = false;
+  $('bCat').textContent = B.q.cat;
+  $('bScene').textContent = B.q.scene || '';
+  $('bScene').classList.toggle('hidden', !B.q.scene);
+  $('bPrompt').innerHTML = B.q.prompt;
+  $('bAsk').textContent = B.q.ask;
+  const box = $('bChoices'); box.innerHTML = '';
+  shuffle(B.q.choices).forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'choice'; btn.textContent = c.t;
+    btn.onclick = () => bossAnswer(btn, c);
+    box.appendChild(btn);
+  });
+  $('bFeedback').classList.add('hidden');
+  justShown();
+  if (B.b.time) {
+    let left = B.b.time;
+    $('bTimer').classList.remove('hidden'); $('bTimer').textContent = '⏱ ' + left;
+    bossTimerId = setInterval(() => {
+      left--; $('bTimer').textContent = '⏱ ' + Math.max(left, 0);
+      if (left <= 3 && left > 0) beep([[880, .05]]);
+      if (left <= 0) { stopBossTimer(); if (!B.answered) bossAnswer(null, { t: '(時間切れ)', tk: '時間切れ。迷っている間に攻撃された。' }); }
+    }, 1000);
+  } else $('bTimer').classList.add('hidden');
+}
+function bossAnswer(btn, c) {
+  if (!B || B.answered || B.done || (btn && tooSoon())) return;
+  B.answered = true; stopBossTimer();
+  const ok = !!c.ok;
+  document.querySelectorAll('#bChoices .choice').forEach(x => {
+    x.disabled = true;
+    if (x.textContent === B.q.answer) x.classList.add('right');
+  });
+  record(B.q.id, ok);
+  addWords(B.q.words, ok, B.q.speak);
+  const fb = $('bMsg');
+  if (ok) {
+    B.combo++; B.ok++;
+    const dmg = 20 + Math.min(B.combo - 1, 4) * 5;
+    B.hp -= dmg; B.pts += 5; addPoint(5); beep(SND_OK);
+    $('bIcon').classList.remove('shake'); void $('bIcon').offsetWidth; $('bIcon').classList.add('shake');
+    fb.className = 'tsukkomi ok';
+    fb.innerHTML = `<div class="who">⚔ ズバッ！ ${dmg}ダメージ${B.combo >= 2 ? '(' + B.combo + '連続ボーナス)' : ''}</div>` + (B.q.exp ? `<div class="small">💡 ${esc(B.q.exp)}</div>` : '');
+    bossSay(rand(B.b.hit));
+  } else {
+    B.combo = 0; B.ng++;
+    B.me -= B.b.hurt; beep(SND_NG);
+    if (btn) btn.classList.add('wrong');
+    $('bArena').classList.remove('hurt'); void $('bArena').offsetWidth; $('bArena').classList.add('hurt');
+    fb.className = 'tsukkomi ng';
+    fb.innerHTML = `<div class="who">💥 反撃をくらった！ -${B.b.hurt}</div>${esc(c.tk || '')}<br><span class="small">正解は「${esc(B.q.answer)}」。</span>` +
+      (B.q.exp ? `<div class="small">💡 ${esc(B.q.exp)}</div>` : '');
+    bossSay(rand(B.b.taunt));
+  }
+  $('bWords').innerHTML = (B.q.words || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
+  $('bWords').classList.toggle('hidden', !(B.q.words || []).length);
+  save(); markPracticed();
+  bossHp();
+  if (B.hp <= 0 || B.me <= 0) bossSettle(B.hp <= 0);
+  $('bNext').textContent = (B.hp <= 0 || B.me <= 0) ? '決着を見る ▶' : '次の攻撃 ▶';
+  $('bFeedback').classList.remove('hidden');
+}
+function bossNext() {
+  if (!B || B.done) return;
+  if (B.hp <= 0) return bossEnd(true);
+  if (B.me <= 0) return bossEnd(false);
+  bossQ();
+}
+// 勝敗が決まった瞬間に保存する(結果を見ずにホームに戻っても記録が残る)
+function bossSettle(win) {
+  if (B.settled) return;
+  B.settled = true; B.bonus = 0;
+  const b = B.b, st = bossState(b.id);
+  if (win) {
+    if (!st.win) { B.bonus = 50 + B.i * 50; addPoint(B.bonus); }
+    st.win = true; st.best = Math.max(st.best || 0, B.me);
+    toast(`🏆 ${b.name}を倒した！${B.bonus ? ' +' + B.bonus + 'pt' : ''}`);
+  }
+  S.boss[b.id] = st; save(); checkBadges();
+}
+function bossEnd(win) {
+  B.done = true; stopBossTimer();
+  bossSettle(win);
+  const b = B.b, bonus = B.bonus;
+  if (win) { bossSay(b.lose); beep(SND_UP); }
+  else { bossSay(rand(b.taunt)); beep(SND_NG); }
+  $('bArena').classList.add('hidden');
+  $('bEndTitle').textContent = win ? (b.final ? '🐉 ラスボス撃破！' : '🏆 勝利！') : '💀 敗北…';
+  $('bEndText').textContent = win
+    ? `${b.name}を倒した。正解${B.ok}問・ミス${B.ng}問。${bonus ? '初撃破ボーナス+' + bonus + 'pt。' : ''}${b.final ? 'すべてのボスを倒した。あなたが新しい言葉の神だ。' : (BOSSES[B.i + 1] ? '次のボスが現れた…' : '')}`
+    : `あと${Math.max(0, B.hp)}で倒せた。間違えた言葉は苦手復習に入れておいた。修行して出直せ。`;
+  $('bEnd').classList.remove('hidden');
+}
+
 // ===== 言葉帳 =====
 function showBook() { $('bookSearch').value = ''; renderBook(); show('book'); }
 function renderBook() {
@@ -1556,7 +1970,7 @@ function showRecord() {
     acc[m] = acc[m] || { ok:0, all:0 };
     acc[m].ok += st.ok; acc[m].all += st.ok + st.ng;
   });
-  const rows = CHOICE_MODES.concat(['narabe', 'kaiwa']).filter(m => acc[m] && acc[m].all).map(m =>
+  const rows = CHOICE_MODES.concat(['narabe', 'kaiwa'], HARD_MODES).filter(m => acc[m] && acc[m].all).map(m =>
     `<div class="acc-row"><span>${esc(MODE_NAME[m])}</span><span>${Math.round(acc[m].ok / acc[m].all * 100)}%(${acc[m].all}問)</span></div>`);
   $('accList').innerHTML = rows.join('') || '<div class="small">まだ記録がありません。</div>';
 
