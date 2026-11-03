@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#c0392b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="言い換え道場">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<title>言い換え道場</title>
+<style>
+  :root {
+    --bg: #fbf7f0; --card: #ffffff; --ink: #2b2b2b; --sub: #6b6b6b;
+    --main: #c0392b; --main-soft: #fbe9e7; --ok: #2e7d32; --ok-soft: #e8f5e9;
+    --ng: #b71c1c; --ng-soft: #ffebee; --line: #e6dfd3; --purple: #5e35b1;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+    font-size: 18px; line-height: 1.7;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: calc(20px + env(safe-area-inset-top)) 16px calc(80px + env(safe-area-inset-bottom)); }
+  button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .offline-note { text-align: center; font-size: 13px; color: var(--sub); margin-top: 24px; }
+  h1 { font-size: 30px; margin: 10px 0 4px; letter-spacing: .05em; }
+  h1 span { color: var(--main); }
+  h2 { font-size: 22px; margin: 6px 0; }
+  .tag { color: var(--sub); font-size: 15px; margin-bottom: 14px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin: 14px 0; box-shadow: 0 2px 6px rgba(0,0,0,.04); }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stat { flex: 1 1 110px; background: var(--main-soft); border-radius: 10px; padding: 8px 12px; }
+  .stat b { display: block; font-size: 22px; }
+  .stat small { color: var(--sub); font-size: 13px; }
+  .title-badge { font-size: 20px; font-weight: bold; color: var(--main); }
+  button { font: inherit; cursor: pointer; border-radius: 12px; border: 2px solid transparent; }
+  button:disabled { cursor: default; }
+  .big { display: block; width: 100%; padding: 16px; font-size: 20px; font-weight: bold; background: var(--main); color: #fff; margin: 10px 0; }
+  .big:hover { filter: brightness(1.08); }
+  .ghost { display: block; width: 100%; padding: 12px; background: #fff; border-color: var(--line); color: var(--ink); margin: 8px 0; }
+  .ghost:hover { border-color: var(--main); }
+  .section-label { font-size: 15px; color: var(--sub); margin: 20px 0 6px; font-weight: bold; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .mode { text-align: left; background: #fff; border-color: var(--line); padding: 12px 14px; }
+  .mode:hover:not(:disabled) { border-color: var(--main); background: #fffaf8; }
+  .mode b { display: block; font-size: 18px; }
+  .mode small { display: block; color: var(--sub); font-size: 13px; line-height: 1.5; }
+  .mode .cnt { color: var(--main); font-size: 12px; }
+  .mode:disabled { opacity: .45; }
+  .today { background: linear-gradient(135deg, #fff8e1, #fff); border-color: #f0d98c; }
+  .today .word { font-size: 26px; font-weight: bold; color: var(--main); }
+  .progress { color: var(--sub); font-size: 14px; display: flex; justify-content: space-between; }
+  .bar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 6px 0 12px; }
+  .bar i { display: block; height: 100%; background: var(--main); transition: width .3s; }
+  .cat { display: inline-block; font-size: 13px; background: var(--main-soft); color: var(--main); padding: 2px 10px; border-radius: 20px; }
+  .scene { color: var(--sub); margin: 8px 0; }
+  .prompt { font-size: 22px; font-weight: bold; margin: 6px 0 4px; }
+  .prompt mark { background: #ffe082; padding: 0 3px; border-radius: 4px; }
+  .prompt .blank { color: var(--main); border-bottom: 3px solid var(--main); padding: 0 6px; }
+  .prompt .bigword { font-size: 34px; }
+  .prompt .yomi { font-size: 16px; color: var(--sub); font-weight: normal; }
+  .ask { font-size: 15px; color: var(--sub); }
+  .choice { display: block; width: 100%; text-align: left; padding: 14px 16px; margin: 10px 0; background: #fff; border-color: var(--line); font-size: 19px; color: var(--ink); }
+  .choice:hover:not(:disabled) { border-color: var(--main); background: #fffaf8; }
+  .choice.right { border-color: var(--ok); background: var(--ok-soft); }
+  .choice.wrong { border-color: var(--ng); background: var(--ng-soft); }
+  .tsukkomi { border-radius: 12px; padding: 14px 16px; margin: 12px 0; font-size: 18px; }
+  .tsukkomi.ok { background: var(--ok-soft); border-left: 6px solid var(--ok); }
+  .tsukkomi.ng { background: var(--ng-soft); border-left: 6px solid var(--ng); }
+  .tsukkomi .who { font-weight: bold; font-size: 14px; color: var(--sub); }
+  .words { background: #fffdf5; border: 1px dashed #d8c99a; border-radius: 12px; padding: 12px 14px; margin: 12px 0; }
+  .words div { margin: 4px 0; }
+  .words b { color: var(--main); }
+  .speak { background: #f3f0ff; border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+  .speak .line { font-size: 21px; font-weight: bold; margin: 6px 0 10px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .row button { flex: 1 1 140px; padding: 12px; font-weight: bold; }
+  .mic { background: var(--purple); color: #fff; }
+  .said { background: #fff; color: var(--purple); border-color: var(--purple); }
+  .heard { font-size: 15px; color: var(--sub); margin-top: 8px; min-height: 1em; }
+  .next { background: var(--ink); color: #fff; width: 100%; padding: 14px; font-size: 19px; font-weight: bold; margin-top: 8px; }
+  .hidden { display: none !important; }
+  .book-item { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .book-item:last-child { border-bottom: none; }
+  .book-item b { font-size: 19px; }
+  .book-item .m { color: var(--sub); font-size: 15px; }
+  .pill { font-size: 12px; padding: 1px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .pill.weak { background: var(--ng-soft); color: var(--ng); }
+  .pill.good { background: var(--ok-soft); color: var(--ok); }
+  .center { text-align: center; }
+  .score { font-size: 44px; font-weight: bold; color: var(--main); }
+  .small { font-size: 14px; color: var(--sub); }
+  .examples { margin-top: 10px; padding-left: 1.3em; }
+  .examples li { margin: 4px 0; }
+  .timer { font-size: 28px; font-weight: bold; color: var(--main); }
+  .nb { position: relative; }
+  .nb .num { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--main); color: #fff; border-radius: 50%; width: 28px; height: 28px; text-align: center; line-height: 28px; font-size: 15px; font-weight: bold; }
+  .order-list { margin: 8px 0; padding-left: 0; list-style: none; }
+  .order-list li { padding: 6px 10px; margin: 4px 0; border-radius: 8px; background: #fafafa; }
+  .order-list li.okline { background: var(--ok-soft); }
+  .order-list li.ngline { background: var(--ng-soft); }
+  input.search { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .chip { background: #fff3e0; border: 2px solid #ffcc80; border-radius: 20px; padding: 4px 14px; font-size: 20px; font-weight: bold; }
+  .chip.used { background: var(--ok-soft); border-color: var(--ok); }
+  .toast-box { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 99; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+  .toast { width: max-content; max-width: 90vw; background: #333; color: #fff; padding: 12px 20px; border-radius: 30px; font-size: 17px; box-shadow: 0 4px 14px rgba(0,0,0,.25); animation: tin .3s; }
+  @keyframes tin { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .topbar { display: flex; justify-content: flex-end; gap: 8px; }
+  .icon-btn { background: #fff; border-color: var(--line); padding: 6px 12px; font-size: 15px; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 8px 0; }
+  .cal div { aspect-ratio: 1; border-radius: 6px; background: #eee; font-size: 11px; color: #888; display: flex; align-items: center; justify-content: center; }
+  .cal .l1 { background: #ffccbc; color: #333; } .cal .l2 { background: #ff8a65; color: #fff; } .cal .l3 { background: #e64a19; color: #fff; }
+  .cal .today-cell { outline: 2px solid var(--ink); }
+  .cal .head { background: none; font-weight: bold; aspect-ratio: auto; }
+  .badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .badge { border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; background: #fff; }
+  .badge .ic { font-size: 30px; }
+  .badge b { display: block; font-size: 15px; }
+  .badge small { color: var(--sub); font-size: 12px; line-height: 1.4; display: block; }
+  .badge.locked { opacity: .35; filter: grayscale(1); }
+  .acc-row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 6px 0; font-size: 16px; }
+  .acc-row:last-child { border-bottom: none; }
+  .seg { display: flex; gap: 8px; margin: 6px 0 14px; }
+  .seg button { flex: 1; padding: 10px; background: #fff; border-color: var(--line); }
+  .seg button.on { border-color: var(--main); background: var(--main-soft); font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== ホーム ===== -->
+  <section id="home">
+    <div class="topbar">
+      <button class="icon-btn" onclick="showRecord()">📅 記録とバッジ</button>
+      <button class="icon-btn" onclick="showSettings()">⚙ 設定</button>
+    </div>
+    <h1><span>言い換え</span>道場</h1>
+    <div class="tag">「やばい」「すごい」で済ませがちな言葉を、ちゃんとした言葉に。1回5問、約3分。</div>
+
+    <div class="card">
+      <div class="small">いまの称号</div>
+      <div class="title-badge" id="titleNow"></div>
+      <div class="small" id="titleNext"></div>
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><b id="stPoint">0</b><small>ポイント</small></div>
+        <div class="stat"><b id="stStreak">0日</b><small>連続で練習</small></div>
+        <div class="stat"><b id="stWords">0</b><small>覚えた言葉</small></div>
+        <div class="stat"><b id="stBadge">0</b><small>バッジ</small></div>
+      </div>
+    </div>
+
+    <div class="card today" id="todayCard">
+      <div class="small">☀ 今日の言葉 ― 今日どこかで1回、実際に口に出して使ってみよう</div>
+      <div class="word" id="todayWord"></div>
+      <div id="todayMean"></div>
+      <div class="small" id="todayEx"></div>
+      <button class="ghost" id="todayBtn" onclick="usedToday()" style="margin-top:10px">今日、会話で使えた！(+10)</button>
+    </div>
+
+    <button class="big" onclick="startMix()">🎲 ごちゃまぜ(迷ったらこれ)</button>
+    <div id="modeGroups"></div>
+
+    <div class="section-label">その他</div>
+    <button class="ghost" onclick="startReview()">🔁 苦手な問題だけ復習</button>
+    <button class="ghost" onclick="showBook()">📖 言葉帳を見る</button>
+    <div class="offline-note" id="offlineNote"></div>
+  </section>
+
+  <!-- ===== 4択・2択クイズ ===== -->
+  <section id="quiz" class="hidden">
+    <div class="progress"><span id="qNum"></span><span id="qPoint"></span></div>
+    <div class="bar"><i id="qBar"></i></div>
+    <div class="card">
+      <span class="cat" id="qCat"></span>
+      <div class="scene" id="qScene"></div>
+      <div class="prompt" id="qPrompt"></div>
+      <div class="ask" id="qAsk"></div>
+      <div id="qChoices"></div>
+
+      <div id="qResult" class="hidden">
+        <div class="tsukkomi" id="qTsukkomi"></div>
+        <div class="words" id="qWords"></div>
+        <div class="speak" id="qSpeak">
+          <div class="small">🗣 声に出して言ってみよう(話す時に使えるようにするのが目的です)</div>
+          <div class="line" id="qBetter"></div>
+          <div class="row">
+            <button class="mic" id="micBtn" onclick="listen()">🎤 マイクで言う</button>
+            <button class="said" id="saidBtn" onclick="saidIt()">言えた！(+5)</button>
+          </div>
+          <div class="heard" id="heard"></div>
+        </div>
+        <button class="next" onclick="nextQ()">次へ ▶</button>
+      </div>
+    </div>
+    <button class="ghost" onclick="goHome()">やめてホームに戻る</button>
+  </section>
+
+  <!-- ===== 強さ並べ替え ===== -->
+  <section id="narabe" class="hidden">
+    <div class="progress"><span id="nNum"></span><span id="nPoint"></span></div>
+    <div class="bar"><i id="nBar"></i></div>
+    <div class="card">
+      <span class="cat">言葉の強さ並べ替え</span>
+      <div class="prompt" id="nTitle" style="margin-top:8px"></div>
+      <div class="ask">弱い → 強い の順にタップしてね。押し間違えたら「やり直し」。</div>
+      <div id="nChoices"></div>
+      <button class="ghost" id="nReset" onclick="narabeReset()">やり直し</button>
+      <div id="nResult" class="hidden">
+        <div class="tsukkomi" id="nTsukkomi"></div>
+        <div class="small">正しい順番(弱い → 強い)</div>
+        <ol class="order-list" id="nOrder"></ol>
+        <div class="words" id="nWords"></div>
+        <button class="next" onclick="nextNarabe()">次へ ▶</button>
+      </div>
+    </div>
+    <button class="ghost" onclick="goHome()">やめてホームに戻る</button>
+  </section>
+
+  <!-- ===== 60秒タイムアタック ===== -->
+  <section id="time" class="hidden">
+    <div class="card">
+      <div class="progress"><span>⏱ 60秒タイムアタック</span><span id="tScore">0問正解</span></div>
+      <div class="center timer" id="tTimer">60</div>
+      <span class="cat" id="tCat"></span>
+      <div class="scene" id="tScene"></div>
+      <div class="prompt" id="tPrompt"></div>
+      <div class="ask" id="tAsk"></div>
+      <div id="tChoices"></div>
+    </div>
+    <button class="ghost" onclick="endTime(true)">やめる</button>
+  </section>
+
+  <!-- ===== 結果 ===== -->
+  <section id="result" class="hidden">
+    <div class="card center">
+      <div class="small" id="rLabel">今回の結果</div>
+      <div class="score" id="rScore"></div>
+      <div id="rComment" style="margin:8px 0 4px"></div>
+      <div class="small" id="rPoint"></div>
+    </div>
+    <div class="card">
+      <div class="small" id="rWordsLabel">今回出てきた言葉</div>
+      <div id="rWords"></div>
+    </div>
+    <button class="big" id="rAgain">もう1回</button>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== 声出し(自由に言い換え・ツッコミ・3語スピーチ) ===== -->
+  <section id="free" class="hidden">
+    <div class="card">
+      <span class="cat" id="fCat"></span>
+      <div class="scene" id="fScene"></div>
+      <div class="prompt" id="fPrompt"></div>
+      <div class="chips hidden" id="fChips"></div>
+      <div class="small" id="fAsk"></div>
+      <div class="center timer hidden" id="fTimer"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="ghost hidden" id="fTimerBtn" onclick="freeTimer()" style="margin:0">⏱ 30秒タイマー</button>
+        <button class="mic" id="fMic" onclick="listenFree()">🎤 マイクで言う</button>
+        <button class="said" onclick="saidFree()">言った！お手本を見る</button>
+      </div>
+      <div class="heard" id="fHeard"></div>
+      <div id="fAnswer" class="hidden">
+        <div class="tsukkomi ok"><div class="who">師範</div><span id="fTsukkomi"></span></div>
+        <div class="small" id="fExLabel">お手本:</div>
+        <ul class="examples" id="fExamples"></ul>
+        <div class="words hidden" id="fWords"></div>
+        <div class="small" id="fPoint"></div>
+      </div>
+      <button class="next" onclick="nextFree()">次のお題 ▶</button>
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== 言葉帳 ===== -->
+  <section id="book" class="hidden">
+    <h2>📖 言葉帳</h2>
+    <div class="small">遊んだ問題に出てきた言葉がたまっていきます。<span class="pill weak">苦手</span>は復習で優先して出ます。</div>
+    <input class="search" id="bookSearch" placeholder="🔍 言葉をさがす" oninput="renderBook()" style="margin-top:10px">
+    <div class="card" id="bookList"></div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== 記録とバッジ ===== -->
+  <section id="record" class="hidden">
+    <h2>📅 記録とバッジ</h2>
+    <div class="card">
+      <div class="small">練習した日(最近5週間。色が濃いほどたくさん練習)</div>
+      <div class="cal" id="calendar"></div>
+      <div class="small" id="recSummary"></div>
+    </div>
+    <div class="card">
+      <div class="small">遊び方ごとの正解率</div>
+      <div id="accList"></div>
+    </div>
+    <div class="card">
+      <div class="small" id="badgeCount"></div>
+      <div class="badges" id="badgeList"></div>
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+  <!-- ===== 設定 ===== -->
+  <section id="settings" class="hidden">
+    <h2>⚙ 設定</h2>
+    <div class="card">
+      <div class="small">1回に出す問題の数</div>
+      <div class="seg" id="segN">
+        <button onclick="setN(5)">5問(約3分)</button>
+        <button onclick="setN(10)">10問(約6分)</button>
+        <button onclick="setN(20)">20問(じっくり)</button>
+      </div>
+      <div class="small">効果音</div>
+      <div class="seg" id="segSound">
+        <button onclick="setSound(true)">🔔 鳴らす</button>
+        <button onclick="setSound(false)">🔕 鳴らさない</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="small">記録の控え(パソコンの掃除などで記録が消えた時のため)</div>
+      <button class="ghost" onclick="exportData()">💾 記録をファイルに保存する</button>
+      <button class="ghost" onclick="$('importFile').click()">📂 保存したファイルから記録を戻す</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(this)">
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
+</div>
+<div class="toast-box" id="toastBox"></div>
+
+<!-- 問題データ(まだ無いファイルは読み飛ばされます) -->
+<script src="data/base.js"></script>
+<script src="data/iikae_more.js"></script>
+<script src="data/iikae_more2.js"></script>
+<script src="data/keigo.js"></script>
+<script src="data/imi.js"></script>
+<script src="data/imi_more.js"></script>
+<script src="data/yomi.js"></script>
+<script src="data/katakana.js"></script>
+<script src="data/taigi.js"></script>
+<script src="data/anaume.js"></script>
+<script src="data/goyou.js"></script>
+<script src="data/tatoe.js"></script>
+<script src="data/narabe.js"></script>
+<script src="data/free_more.js"></script>
+<script src="data/tsukkomi.js"></script>
+<script src="data/sango.js"></script>
+
+<script>
+// ===== データをまとめる =====
+const D = {
+  iikae:    [].concat(window.QUESTIONS || [], window.IIKAE_MORE || [], window.IIKAE_MORE2 || []),
+  keigo:    window.KEIGO || [],
+  imi:      [].concat(window.IMI || [], window.IMI_MORE || []),
+  yomi:     window.YOMI || [],
+  katakana: window.KATAKANA || [],
+  taigi:    window.TAIGI || [],
+  anaume:   window.ANAUME || [],
+  goyou:    window.GOYOU || [],
+  tatoe:    window.TATOE || [],
+  narabe:   window.NARABE || [],
+  free:     [].concat(window.FREE || [], window.FREE_MORE || []),
+  tsukkomi: window.TSUKKOMI || [],
+  sango:    window.SANGO || [],
+};
+const CHOICE_MODES = ['iikae', 'imi', 'yomi', 'katakana', 'taigi', 'anaume', 'goyou', 'keigo', 'tatoe'];
+
+// 問題ごとの見分け用の名前(問題を足したり消したりしても成績がずれないように、中身から作る)
+function keyOf(mode, q) {
+  switch (mode) {
+    case 'iikae': case 'keigo': case 'tatoe': return mode + ':' + q.l + '|' + q.a;
+    case 'imi': case 'yomi': case 'katakana': return mode + ':' + q.w;
+    case 'taigi': case 'goyou': return mode + ':' + q.q;
+    case 'anaume': return mode + ':' + q.s;
+    case 'narabe': return mode + ':' + q.t;
+  }
+  return mode + ':?';
+}
+const IDS = {};
+Object.keys(D).forEach(m => IDS[m] = D[m].map(q => keyOf(m, q)));
+
+const MODES = [
+  { id:'iikae',    g:0, icon:'💬', name:'言い換え4択',   desc:'「やばい」「すごい」をちゃんとした言葉に', start:() => startChoice('iikae') },
+  { id:'imi',      g:0, icon:'🔍', name:'意味当て',       desc:'この言葉、どういう意味？', start:() => startChoice('imi') },
+  { id:'yomi',     g:0, icon:'🈁', name:'読み方',         desc:'大人が読み間違えやすい言葉', start:() => startChoice('yomi') },
+  { id:'katakana', g:0, icon:'🔤', name:'カタカナ語',     desc:'エビデンス、リスケ…日本語で言うと？', start:() => startChoice('katakana') },
+  { id:'taigi',    g:0, icon:'↔', name:'反対語',         desc:'反対の意味の言葉はどれ？', start:() => startChoice('taigi') },
+  { id:'anaume',   g:1, icon:'🧩', name:'穴埋め',         desc:'慣用句・ことわざ・四字熟語・オノマトペ', start:() => startChoice('anaume') },
+  { id:'goyou',    g:1, icon:'⚖', name:'どっちが正しい？', desc:'よくある言い間違い・読み間違いの2択', start:() => startChoice('goyou') },
+  { id:'keigo',    g:1, icon:'👔', name:'大人の言い方',   desc:'職場・お店・電話・断り方・謝り方', start:() => startChoice('keigo') },
+  { id:'tatoe',    g:1, icon:'🎨', name:'たとえ上手',     desc:'ぴったりの「〜みたい」を選ぶ', start:() => startChoice('tatoe') },
+  { id:'narabe',   g:1, icon:'📶', name:'強さ並べ替え',   desc:'似た言葉を弱い順に並べる', start:() => startNarabe() },
+  { id:'free',     g:2, icon:'🎤', name:'自由に言い換え', desc:'自分の言葉で言い換えて声に出す', start:() => startFree('free') },
+  { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
+  { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
+  { id:'time',     g:3, icon:'⏱', name:'60秒タイムアタック', desc:'説明なしで何問とけるか勝負', start:() => startTime() },
+];
+const GROUPS = ['📘 言葉を増やす', '🛠 使いこなす', '🗣 話す練習', '🏆 腕だめし'];
+const MODE_NAME = {}; MODES.forEach(m => MODE_NAME[m.id] = m.icon + ' ' + m.name);
+function modeCount(id) {
+  if (id === 'time') return CHOICE_MODES.reduce((s, m) => s + D[m].length, 0);
+  return D[id].length;
+}
+
+const OK_LINES = [
+  'お見事。言葉にちゃんと中身が入ったな。',
+  '正解。「やばい」で済ませてた頃の自分に聞かせてやれ。',
+  'いいね。今の言い方なら、聞いた人に景色が浮かぶ。',
+  '正解。語彙力少ないなんて、もう言わせない方向で。',
+  'そう、それ。ちょっと大人の会話っぽくなったぞ。',
+  '正解。この調子で、口ぐせを1個ずつ入れ替えていこう。',
+  '正解。今のは会話で使ったら一目置かれるやつだ。',
+  'やるじゃないか。知ってるだけじゃなく、口に出せたら完璧だ。',
+  '正解。その言葉、今週中に1回使ってみろ。',
+  'さすが。だんだん言葉の引き出しが増えてきたな。',
+];
+const FREE_TSUKKOMI = [
+  '言えたなら上出来。「やばい」1個で済ませるより、よっぽど伝わるぞ。',
+  '正解なんてない。大事なのは、口に出す回数だ。',
+  '今の、ちょっとでも詳しく言えてたら合格。お手本と比べてみろ。',
+  '言葉は、使ってナンボ。頭で知ってるだけの言葉は、話す時に出てこないからな。',
+];
+const TSUKKOMI_PRAISE = [
+  'ツッコミは言葉選びとスピード。お手本の言い回しを1個盗んでいけ。',
+  '声に出せた時点で半分勝ち。あとは言葉のキレだ。',
+  '今のツッコミ、お手本より面白かったなら、それが正解だ。',
+  'たとえツッコミは語彙力の見せ場。引き出しを増やしていこう。',
+];
+const SANGO_PRAISE = [
+  '3語ぜんぶ入れられたら合格。入らなかった言葉は、お手本の使い方を盗め。',
+  '30秒しゃべるのは、慣れるまでしんどい。それを毎日やる人が話し上手になる。',
+  '詰まってもいい。言葉をつなげる練習だ。',
+  '知ってる言葉を「使える言葉」に変えるのが、このスピーチの目的だ。',
+];
+
+const TITLES = [
+  [0,    '「やばい」しか言えない人'],
+  [30,   '言い換え見習い'],
+  [80,   '言葉の素振り中'],
+  [150,  '語彙の中堅'],
+  [250,  'しゃべりの職人'],
+  [400,  '言い換え師範代'],
+  [600,  '言い換え道場 師範'],
+  [900,  '歩く国語辞典'],
+  [1300, '言葉の魔術師'],
+  [2000, '語彙の神'],
+  [3000, '伝説の語り部'],
+  [5000, '言葉の仙人'],
+];
+function titleOf(p) { let t = TITLES[0][1]; for (const [n, name] of TITLES) if (p >= n) t = name; return t; }
+
+const BADGES = [
+  ['first',    '🔰', 'はじめの一歩',   '初めて問題に答えた',         s => s.cnt.answered >= 1],
+  ['ans100',   '📝', '100問突破',      '合計100問に答えた',          s => s.cnt.answered >= 100],
+  ['ans500',   '📚', '500問突破',      '合計500問に答えた',          s => s.cnt.answered >= 500],
+  ['ans1000',  '🏯', '千本ノック',     '合計1000問に答えた',         s => s.cnt.answered >= 1000],
+  ['streak3',  '🔥', '三日坊主卒業',   '3日連続で練習した',          s => s.maxStreak >= 3],
+  ['streak7',  '📅', '1週間皆勤',      '7日連続で練習した',          s => s.maxStreak >= 7],
+  ['streak30', '👑', '1か月皆勤',      '30日連続で練習した',         s => s.maxStreak >= 30],
+  ['words50',  '🗂', '言葉コレクター', '言葉帳が50語になった',       s => Object.keys(s.words).length >= 50],
+  ['words200', '💎', '言葉の宝石箱',   '言葉帳が200語になった',      s => Object.keys(s.words).length >= 200],
+  ['words500', '🧠', '歩く辞書',       '言葉帳が500語になった',      s => Object.keys(s.words).length >= 500],
+  ['perfect',  '💯', '全問正解',       '1回のチャレンジで全問正解',  s => s.cnt.perfect >= 1],
+  ['perfect10','🎯', '百発百中',       '全問正解を10回達成',         s => s.cnt.perfect >= 10],
+  ['say30',    '🗣', '声出し見習い',   '声に出して言った回数30回',   s => s.cnt.said >= 30],
+  ['say200',   '📢', '声出し名人',     '声に出して言った回数200回',  s => s.cnt.said >= 200],
+  ['speed15',  '⚡', 'スピードスター', '60秒で15問正解',             s => s.best >= 15],
+  ['speed25',  '🚀', '光速の語彙',     '60秒で25問正解',             s => s.best >= 25],
+  ['tsukkomi20','🤚','ツッコミ見習い', 'ツッコミ道場を20回',         s => s.cnt.tsukkomi >= 20],
+  ['sango20',  '🎙', '3語の語り部',    '3語スピーチを20回',          s => s.cnt.sango >= 20],
+  ['weak10',   '💪', '苦手克服',       '苦手だった問題に10回正解',   s => s.cnt.weakFixed >= 10],
+  ['used10',   '🌱', '実戦派',         '今日の言葉を会話で10回使った', s => s.cnt.used >= 10],
+  ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
+];
+
+// ===== 保存データ =====
+const KEY = 'iikae_dojo_v1';
+function blank() {
+  return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
+    days:{}, badges:{}, played:{}, settings:{ n:5, sound:true },
+    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0 } };
+}
+function load() {
+  let s;
+  try { s = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { s = {}; }
+  const b = blank();
+  s = Object.assign(b, s);
+  s.settings = Object.assign(blank().settings, s.settings || {});
+  s.cnt = Object.assign(blank().cnt, s.cnt || {});
+  // 古い版の成績(番号で記録していたもの)を新しい形に移す
+  for (const k of Object.keys(s.stats)) {
+    let m = null, n = null;
+    if (/^\d+$/.test(k)) { m = 'iikae'; n = +k; }
+    else { const r = k.match(/^(\w+):(\d+)$/); if (r && IDS[r[1]]) { m = r[1]; n = +r[2]; } }
+    if (m !== null) {
+      const nk = IDS[m][n];
+      if (nk && !s.stats[nk]) s.stats[nk] = s.stats[k];
+      delete s.stats[k];
+    }
+  }
+  if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  return s;
+}
+let S = load();
+function save() { localStorage.setItem(KEY, JSON.stringify(S)); }
+
+function dayStr(d) { return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); }
+function today() { return dayStr(new Date()); }
+function yesterday() { const y = new Date(); y.setDate(y.getDate() - 1); return dayStr(y); }
+function markPracticed() {
+  const t = today();
+  S.days[t] = (S.days[t] || 0) + 1;
+  if (S.lastDay !== t) {
+    S.streak = (S.lastDay === yesterday()) ? S.streak + 1 : 1;
+    S.lastDay = t;
+    if (S.streak > S.maxStreak) S.maxStreak = S.streak;
+  }
+  save(); checkBadges();
+}
+function streakNow() {
+  if (!S.lastDay) return 0;
+  return (S.lastDay === today() || S.lastDay === yesterday()) ? S.streak : 0;
+}
+
+// ===== 共通 =====
+const $ = id => document.getElementById(id);
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings'];
+function show(id) {
+  SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
+  window.scrollTo(0, 0);
+}
+function goHome() { stopListen(); stopTimer(); stopFreeTimer(); renderHome(); show('home'); }
+function played(mode) { if (!S.played[mode]) { S.played[mode] = 1; save(); } }
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  $('toastBox').appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// 効果音(パソコン内で音を作るので、音声ファイルはいらない)
+let AC = null;
+function beep(seq) {
+  if (!S.settings.sound) return;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    let t = AC.currentTime;
+    seq.forEach(([f, d, type]) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type || 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.15, t); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+      o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d);
+      t += d * 0.85;
+    });
+  } catch (e) {}
+}
+const SND_OK = [[880, .12], [1320, .2]];
+const SND_NG = [[300, .15, 'triangle'], [220, .3, 'triangle']];
+const SND_UP = [[523, .12], [659, .12], [784, .12], [1047, .35]];
+
+function addPoint(n) {
+  const before = titleOf(S.point);
+  S.point += n; save();
+  const after = titleOf(S.point);
+  if (after !== before) { toast('🎉 称号アップ!「' + after + '」'); beep(SND_UP); }
+}
+function checkBadges() {
+  BADGES.forEach(([id, ic, name, , cond]) => {
+    if (!S.badges[id] && cond(S)) {
+      S.badges[id] = today(); save();
+      toast('🏅 バッジ獲得: ' + ic + ' ' + name);
+      beep(SND_UP);
+    }
+  });
+}
+
+function addWords(words, ok, ex) {
+  (words || []).forEach(([w, m]) => {
+    if (!w) return;
+    const e = S.words[w] || { m, ok:0, ng:0, ex: ex || '' };
+    e.m = m; if (ex) e.ex = ex;
+    if (ok) e.ok++; else e.ng++;
+    S.words[w] = e;
+  });
+}
+function record(id, ok) {
+  const st = S.stats[id] || { ok:0, ng:0, seen:0 };
+  if (ok && st.ng > st.ok) S.cnt.weakFixed++;
+  st.seen++; if (ok) st.ok++; else st.ng++;
+  S.stats[id] = st;
+  S.cnt.answered++;
+}
+
+// ===== ホーム =====
+function renderHome() {
+  const now = titleOf(S.point);
+  const next = TITLES.find(([p]) => p > S.point);
+  $('titleNow').textContent = now;
+  $('titleNext').textContent = next ? `次の称号「${next[1]}」まで あと${next[0] - S.point}ポイント` : '最高の称号です。もう人に教えられるレベル。';
+  $('stPoint').textContent = S.point;
+  $('stStreak').textContent = streakNow() + '日';
+  $('stWords').textContent = Object.keys(S.words).length;
+  $('stBadge').textContent = Object.keys(S.badges).length + '/' + BADGES.length;
+
+  const box = $('modeGroups'); box.innerHTML = '';
+  GROUPS.forEach((gname, gi) => {
+    const lab = document.createElement('div'); lab.className = 'section-label'; lab.textContent = gname;
+    const grid = document.createElement('div'); grid.className = 'modes';
+    MODES.filter(m => m.g === gi).forEach(m => {
+      const n = modeCount(m.id);
+      const b = document.createElement('button');
+      b.className = 'mode';
+      const extra = m.id === 'time' ? ` ・最高${S.best}問` : '';
+      b.innerHTML = `<b>${m.icon} ${esc(m.name)}</b><small>${esc(m.desc)}</small><span class="cnt">${n ? n + '問' + extra : '準備中'}</span>`;
+      b.disabled = n === 0;
+      b.onclick = m.start;
+      grid.appendChild(b);
+    });
+    box.appendChild(lab); box.appendChild(grid);
+  });
+  renderToday();
+}
+
+// 今日の言葉(日付で決まる)
+function allWordList() {
+  const list = [], seen = new Set();
+  const push = (w, m, ex) => { if (w && m && !seen.has(w)) { seen.add(w); list.push({ w, m, ex: ex || '' }); } };
+  D.imi.forEach(q => push(q.w, q.a, q.ex));
+  D.iikae.forEach(q => (q.w || []).forEach(([w, m]) => push(w, m, q.b)));
+  D.anaume.forEach(q => (q.w || []).forEach(([w, m]) => push(w, m, q.full)));
+  D.tatoe.forEach(q => (q.w || []).forEach(([w, m]) => push(w, m, q.b)));
+  return list;
+}
+function renderToday() {
+  const list = allWordList();
+  if (!list.length) { $('todayCard').classList.add('hidden'); return; }
+  const d = new Date();
+  const seed = d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate();
+  const t = list[(seed * 7919) % list.length];
+  $('todayWord').textContent = t.w;
+  $('todayMean').textContent = t.m;
+  $('todayEx').textContent = t.ex ? '例:' + t.ex : '';
+  const used = S.usedDay === today();
+  $('todayBtn').disabled = used;
+  $('todayBtn').textContent = used ? '✔ 今日は使えた！また明日' : '今日、会話で使えた！(+10)';
+}
+function usedToday() {
+  if (S.usedDay === today()) return;
+  S.usedDay = today(); S.cnt.used++;
+  addPoint(10); markPracticed(); beep(SND_OK);
+  toast('実戦で使えたのが一番えらい。+10pt');
+  renderHome();
+}
+
+// ===== 問題をそろった形にする =====
+function highlight(text, part) {
+  const t = esc(text), p = esc(part || '');
+  return p && t.includes(p) ? t.replace(p, '<mark>' + p + '</mark>') : t;
+}
+function choicesOf(q) { return [{ t:q.a, ok:true }].concat((q.n || []).map(([t, tk]) => ({ t, tk }))); }
+function makeQ(mode, i) {
+  const q = D[mode][i];
+  const base = { id: IDS[mode][i], mode, scene:'', exp:'' };
+  switch (mode) {
+    case 'iikae': case 'keigo': case 'tatoe':
+      return Object.assign(base, { cat: (mode === 'tatoe' ? 'たとえ上手「' : '「') + q.c + '」', scene: q.s, prompt: highlight(q.l, q.k),
+        ask: mode === 'keigo' ? '↑ 大人ならどう言う？' : mode === 'tatoe' ? '↑ ぴったりのたとえはどれ？' : '↑ これ、どう言い換える？いちばん合う言葉を選んで。',
+        choices: choicesOf(q), answer: q.a, speak: q.b, words: q.w });
+    case 'imi':
+      return Object.assign(base, { cat: '意味当て',
+        prompt: `<span class="bigword">${esc(q.w)}</span> <span class="yomi">(${esc(q.y || '')})</span>`,
+        ask: 'この言葉の意味は？', choices: choicesOf(q), answer: q.a, speak: q.ex, words: [[q.w, q.a]] });
+    case 'yomi':
+      return Object.assign(base, { cat: '読み方',
+        prompt: `<span class="bigword">${esc(q.w)}</span>`,
+        ask: 'この言葉の読み方は？', choices: choicesOf(q), answer: q.a, speak: q.ex,
+        words: [[q.w + '(' + q.a + ')', q.m]] });
+    case 'katakana':
+      return Object.assign(base, { cat: 'カタカナ語',
+        prompt: `<span class="bigword">${esc(q.w)}</span>`,
+        ask: '日本語で言うと？', choices: choicesOf(q), answer: q.a, speak: q.ex, words: [[q.w, q.a]] });
+    case 'taigi':
+      return Object.assign(base, { cat: '反対語',
+        prompt: `<span class="bigword">${esc(q.q)}</span> <span class="yomi">(${esc(q.y || '')})</span>`,
+        ask: '反対の意味の言葉はどれ？', choices: choicesOf(q), answer: q.a, speak: q.ex, words: q.w });
+    case 'anaume':
+      return Object.assign(base, { cat: q.c || '穴埋め',
+        prompt: esc(q.s).replace(/＿+/, '<span class="blank">＿＿</span>'),
+        ask: '＿＿に入るのはどれ？', choices: choicesOf(q), answer: q.a, speak: q.full, words: q.w });
+    case 'goyou':
+      return Object.assign(base, { cat: 'どっちが正しい？',
+        prompt: esc(q.q).replace(/〔[^〕]*〕/, '<span class="blank">〔　〕</span>'),
+        ask: '〔　〕に入る正しい方はどっち？',
+        choices: [{ t:q.a, ok:true }, { t:q.x, tk:q.tk }],
+        answer: q.a, speak: q.q.replace(/〔[^〕]*〕/, q.a), words: q.w, exp: q.exp });
+  }
+}
+
+// ===== 出題の選び方(初めての問題と、間違えた問題が出やすい) =====
+function weightOf(id) {
+  const st = S.stats[id];
+  if (!st || st.seen === 0) return 5;
+  return Math.max(0.3, 1 + st.ng * 3 - st.ok * 0.5);
+}
+function isWeak(id) { const st = S.stats[id]; return !!st && st.ng > st.ok; }
+function pickWeighted(pool, n) {
+  pool = pool.slice(); const out = [];
+  while (out.length < n && pool.length) {
+    const total = pool.reduce((s, x) => s + x.w, 0);
+    let r = Math.random() * total, k = 0;
+    while (r > pool[k].w && k < pool.length - 1) { r -= pool[k].w; k++; }
+    out.push(pool[k]); pool.splice(k, 1);
+  }
+  return out;
+}
+function poolOf(modes, weakOnly) {
+  const pool = [];
+  modes.forEach(m => D[m].forEach((_, i) => {
+    const id = IDS[m][i];
+    if (weakOnly && !isWeak(id)) return;
+    pool.push({ m, i, id, w: weightOf(id) });
+  }));
+  return pool;
+}
+
+// ===== 4択・2択クイズ =====
+let round = [], qi = 0, roundPoint = 0, roundCorrect = 0, answered = false, spoke = false, current = null, againFn = null;
+
+function startChoice(mode) {
+  againFn = () => startChoice(mode);
+  played(mode);
+  begin(pickWeighted(poolOf([mode]), S.settings.n));
+}
+function startMix() {
+  againFn = startMix;
+  const avail = CHOICE_MODES.filter(m => D[m].length);
+  const pools = {}; avail.forEach(m => pools[m] = poolOf([m]));
+  const picks = [];
+  for (let tries = 0; picks.length < S.settings.n && tries < 200; tries++) {
+    const m = rand(avail);
+    const got = pickWeighted(pools[m].filter(x => !picks.some(p => p.id === x.id)), 1);
+    if (got.length) picks.push(got[0]);
+  }
+  begin(picks);
+}
+function startReview() {
+  againFn = startReview;
+  const pool = poolOf(CHOICE_MODES, true);
+  if (!pool.length) { alert('苦手な問題はまだありません。まずはほかの遊び方で遊んでみよう。'); return; }
+  begin(pickWeighted(pool, S.settings.n));
+}
+function begin(picks) {
+  round = picks.map(p => makeQ(p.m, p.i)); qi = 0; roundPoint = 0; roundCorrect = 0;
+  show('quiz'); renderQ();
+}
+
+function renderQ() {
+  stopListen();
+  answered = false; spoke = false;
+  current = round[qi];
+  $('qNum').textContent = `${qi + 1} / ${round.length}問目`;
+  $('qPoint').textContent = `今回 +${roundPoint}pt`;
+  $('qBar').style.width = (qi / round.length * 100) + '%';
+  $('qCat').textContent = current.cat;
+  $('qScene').textContent = current.scene;
+  $('qScene').classList.toggle('hidden', !current.scene);
+  $('qPrompt').innerHTML = current.prompt;
+  $('qAsk').textContent = current.ask;
+  const box = $('qChoices'); box.innerHTML = '';
+  shuffle(current.choices).forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'choice'; b.textContent = c.t;
+    b.onclick = () => answer(b, c);
+    box.appendChild(b);
+  });
+  $('qResult').classList.add('hidden');
+  $('heard').textContent = '';
+  $('saidBtn').disabled = false; $('saidBtn').textContent = '言えた！(+5)';
+  $('micBtn').classList.toggle('hidden', !Recog);
+}
+
+function answer(btn, c) {
+  if (answered) return;
+  answered = true;
+  const ok = !!c.ok;
+  document.querySelectorAll('#qChoices .choice').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === current.answer) b.classList.add('right');
+  });
+  const box = $('qTsukkomi');
+  const exp = current.exp ? '<div class="small" style="margin-top:6px">💡 ' + esc(current.exp) + '</div>' : '';
+  record(current.id, ok);
+  if (ok) {
+    roundCorrect++; roundPoint += 10; addPoint(10); beep(SND_OK);
+    box.className = 'tsukkomi ok';
+    box.innerHTML = '<div class="who">⭕ 正解 +10pt</div>' + esc(rand(OK_LINES)) + exp;
+  } else {
+    beep(SND_NG);
+    btn.classList.add('wrong');
+    box.className = 'tsukkomi ng';
+    box.innerHTML = '<div class="who">❌ 師範のツッコミ</div>' + esc(c.tk || '') +
+      '<br><span class="small">正解は「' + esc(current.answer) + '」。</span>' + exp;
+  }
+  addWords(current.words, ok, current.speak);
+  save(); markPracticed();
+  $('qWords').innerHTML = '<div class="small">📌 覚えておきたい言葉</div>' +
+    (current.words || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
+  $('qWords').classList.toggle('hidden', !(current.words || []).length);
+  $('qBetter').textContent = '「' + (current.speak || '') + '」';
+  $('qSpeak').classList.toggle('hidden', !current.speak);
+  $('qResult').classList.remove('hidden');
+  $('qPoint').textContent = `今回 +${roundPoint}pt`;
+}
+
+function saidIt() {
+  if (spoke) return;
+  spoke = true; roundPoint += 5; S.cnt.said++; addPoint(5); checkBadges();
+  $('saidBtn').disabled = true; $('saidBtn').textContent = '✔ 言えた +5pt';
+  $('qPoint').textContent = `今回 +${roundPoint}pt`;
+}
+
+function nextQ() {
+  qi++;
+  if (qi >= round.length) return showRoundResult();
+  renderQ();
+}
+
+function showRoundResult() {
+  stopListen();
+  const c = roundCorrect, n = round.length;
+  if (c === n && n >= 5) { S.cnt.perfect++; save(); checkBadges(); beep(SND_UP); }
+  $('rLabel').textContent = '今回の結果';
+  $('rScore').textContent = `${c} / ${n}`;
+  $('rComment').textContent =
+    c === n ? '全問正解。今日から「やばい」は封印だ。' :
+    c >= n * 0.6 ? 'なかなかやるな。間違えた問題は、復習でまた出すからな。' :
+    c >= 1 ? '伸びしろしかない。知らない言葉に会えた分だけ得してるぞ。' :
+             '全滅か。安心しろ、ここで覚えれば明日の会話では勝てる。';
+  $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = '今回出てきた言葉';
+  $('rWords').innerHTML = round.flatMap(q => (q.words || []).map(([w, m]) =>
+    `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').onclick = againFn;
+  show('result');
+}
+
+// ===== 強さ並べ替え =====
+let nRound = [], ni = 0, nSel = [], nPoint = 0, nCorrect = 0, nDone = false;
+function startNarabe() {
+  againFn = startNarabe; played('narabe');
+  nRound = pickWeighted(poolOf(['narabe']), S.settings.n).map(p => p.i);
+  ni = 0; nPoint = 0; nCorrect = 0;
+  show('narabe'); renderNarabe();
+}
+function renderNarabe() {
+  const q = D.narabe[nRound[ni]];
+  nSel = []; nDone = false;
+  $('nNum').textContent = `${ni + 1} / ${nRound.length}問目`;
+  $('nPoint').textContent = `今回 +${nPoint}pt`;
+  $('nBar').style.width = (ni / nRound.length * 100) + '%';
+  $('nTitle').textContent = 'お題:' + q.t;
+  const box = $('nChoices'); box.innerHTML = '';
+  let order = shuffle(q.items);
+  for (let k = 0; k < 10 && order.join() === q.items.join(); k++) order = shuffle(q.items);
+  order.forEach(t => {
+    const b = document.createElement('button');
+    b.className = 'choice nb'; b.textContent = t;
+    b.onclick = () => narabeTap(b, t);
+    box.appendChild(b);
+  });
+  $('nReset').classList.remove('hidden');
+  $('nResult').classList.add('hidden');
+}
+function narabeTap(b, t) {
+  if (nDone || nSel.includes(t)) return;
+  nSel.push(t);
+  const s = document.createElement('span'); s.className = 'num'; s.textContent = nSel.length;
+  b.appendChild(s); b.disabled = true;
+  if (nSel.length === D.narabe[nRound[ni]].items.length) narabeJudge();
+}
+function narabeReset() {
+  if (nDone) return;
+  nSel = [];
+  document.querySelectorAll('#nChoices .choice').forEach(b => { b.disabled = false; const s = b.querySelector('.num'); if (s) s.remove(); });
+}
+function narabeJudge() {
+  nDone = true;
+  const idx = nRound[ni], q = D.narabe[idx];
+  const ok = nSel.join('|') === q.items.join('|');
+  const box = $('nTsukkomi');
+  record(IDS.narabe[idx], ok);
+  if (ok) {
+    nCorrect++; nPoint += 10; addPoint(10); beep(SND_OK);
+    box.className = 'tsukkomi ok';
+    box.innerHTML = '<div class="who">⭕ 正解 +10pt</div>' + esc(rand(OK_LINES));
+  } else {
+    beep(SND_NG);
+    box.className = 'tsukkomi ng';
+    box.innerHTML = '<div class="who">❌ 惜しい</div>言葉の「温度」を感じ取れ。強さが分かると、場面に合わせて使い分けられるようになる。';
+  }
+  $('nOrder').innerHTML = q.items.map((t, k) =>
+    `<li class="${nSel[k] === t ? 'okline' : 'ngline'}">${k + 1}. ${esc(t)}${nSel[k] !== t ? ' <span class="small">(あなた:' + esc(nSel[k]) + ')</span>' : ''}</li>`).join('') +
+    (q.exp ? `<div class="small" style="margin-top:6px">💡 ${esc(q.exp)}</div>` : '');
+  $('nWords').innerHTML = '<div class="small">📌 覚えておきたい言葉</div>' + (q.w || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
+  $('nWords').classList.toggle('hidden', !(q.w || []).length);
+  addWords(q.w, ok, '');
+  save(); markPracticed();
+  $('nReset').classList.add('hidden');
+  $('nResult').classList.remove('hidden');
+  $('nPoint').textContent = `今回 +${nPoint}pt`;
+}
+function nextNarabe() {
+  ni++;
+  if (ni < nRound.length) return renderNarabe();
+  if (nCorrect === nRound.length && nRound.length >= 5) { S.cnt.perfect++; save(); checkBadges(); }
+  $('rLabel').textContent = '強さ並べ替えの結果';
+  $('rScore').textContent = `${nCorrect} / ${nRound.length}`;
+  $('rComment').textContent = nCorrect === nRound.length ? '完璧。言葉の温度が分かる人は、話がうまい。' : '言葉の強さの差は、使い分けの第一歩。何回もやれば体で覚える。';
+  $('rPoint').textContent = `今回 +${nPoint}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = '今回出てきた言葉';
+  $('rWords').innerHTML = nRound.flatMap(i => (D.narabe[i].w || []).map(([w, m]) =>
+    `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし</div>';
+  $('rAgain').onclick = againFn;
+  show('result');
+}
+
+// ===== 60秒タイムアタック =====
+let tTimer = null, tLeft = 60, tScore = 0, tMiss = [], tCur = null, tLock = false, tUsed = new Set();
+function startTime() {
+  againFn = startTime; played('time');
+  tLeft = 60; tScore = 0; tMiss = []; tUsed = new Set(); tLock = false;
+  $('tTimer').textContent = tLeft; $('tScore').textContent = '0問正解';
+  show('time'); nextTime();
+  stopTimer();
+  tTimer = setInterval(() => {
+    tLeft--; $('tTimer').textContent = tLeft;
+    if (tLeft <= 0) endTime(false);
+  }, 1000);
+}
+function stopTimer() { if (tTimer) { clearInterval(tTimer); tTimer = null; } }
+function nextTime() {
+  let pool = poolOf(CHOICE_MODES).filter(x => !tUsed.has(x.id));
+  if (!pool.length) { tUsed = new Set(); pool = poolOf(CHOICE_MODES); }
+  const p = rand(pool); tUsed.add(p.id);
+  tCur = makeQ(p.m, p.i);
+  $('tCat').textContent = tCur.cat;
+  $('tScene').textContent = tCur.scene || '';
+  $('tScene').classList.toggle('hidden', !tCur.scene);
+  $('tPrompt').innerHTML = tCur.prompt;
+  $('tAsk').textContent = tCur.ask;
+  const box = $('tChoices'); box.innerHTML = '';
+  shuffle(tCur.choices).forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'choice'; b.textContent = c.t;
+    b.onclick = () => timeAnswer(b, c);
+    box.appendChild(b);
+  });
+  tLock = false;
+}
+function timeAnswer(b, c) {
+  if (tLock || !tTimer) return;
+  tLock = true;
+  const ok = !!c.ok;
+  record(tCur.id, ok);
+  if (ok) { tScore++; b.classList.add('right'); beep([[990, .08]]); }
+  else {
+    b.classList.add('wrong'); beep([[220, .15, 'triangle']]);
+    document.querySelectorAll('#tChoices .choice').forEach(x => { if (x.textContent === tCur.answer) x.classList.add('right'); });
+    tMiss.push(tCur);
+  }
+  $('tScore').textContent = tScore + '問正解';
+  setTimeout(() => { if (tTimer) nextTime(); }, ok ? 350 : 1100);
+}
+function endTime(quit) {
+  if (!tTimer) return;
+  stopTimer(); save();
+  if (quit) { goHome(); return; }
+  const pts = tScore * 2;
+  const newBest = tScore > S.best;
+  if (newBest) S.best = tScore;
+  addPoint(pts); markPracticed();
+  if (newBest) beep(SND_UP);
+  $('rLabel').textContent = '60秒タイムアタックの結果';
+  $('rScore').textContent = `${tScore}問正解`;
+  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.best}問。次は超えろ。`;
+  $('rPoint').textContent = `+${pts}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = tMiss.length ? '間違えた問題(覚えて帰れ)' : '間違えた問題';
+  $('rWords').innerHTML = tMiss.map(q =>
+    `<div class="book-item"><div class="small">${esc(q.cat)}:${esc(q.prompt.replace(/<[^>]+>/g, ''))}</div><b>正解:${esc(q.answer)}</b>` +
+    (q.words || []).map(([w, m]) => `<div class="m">${esc(w)} … ${esc(m)}</div>`).join('') + '</div>').join('') ||
+    '<div class="small">ノーミス。やるじゃないか。</div>';
+  $('rAgain').onclick = againFn;
+  show('result');
+}
+
+// ===== 声出し(自由に言い換え・ツッコミ道場・3語スピーチ) =====
+let fMode = 'free', fOrder = [], fi = 0, fRevealed = false, fHeardText = '';
+function startFree(mode) {
+  fMode = mode; played(mode);
+  fOrder = shuffle(D[mode].map((_, i) => i)); fi = 0;
+  show('free'); renderFree();
+}
+function renderFree() {
+  stopListen(); stopFreeTimer();
+  fRevealed = false; fHeardText = '';
+  const f = D[fMode][fOrder[fi]];
+  const isSango = fMode === 'sango';
+  $('fChips').classList.toggle('hidden', !isSango);
+  $('fTimerBtn').classList.toggle('hidden', !isSango);
+  $('fTimer').classList.add('hidden');
+  if (fMode === 'free') {
+    $('fCat').textContent = '自由に言い換え';
+    $('fScene').textContent = f.s;
+    $('fPrompt').textContent = '「' + f.l + '」';
+    $('fAsk').textContent = '↑ 自分の言葉で、もっと詳しく言い換えて声に出してみよう。正解はないので、思いついたまま言えばOK。';
+    $('fExLabel').textContent = '言い換えの例:';
+  } else if (fMode === 'tsukkomi') {
+    $('fCat').textContent = 'ツッコミ道場';
+    $('fScene').textContent = f.s;
+    $('fPrompt').textContent = f.boke;
+    $('fAsk').textContent = '↑ 声に出してツッコんでみよう。「なんでやねん」だけは禁止。';
+    $('fExLabel').textContent = 'ツッコミの例:';
+  } else {
+    $('fCat').textContent = '3語スピーチ';
+    $('fScene').textContent = '';
+    $('fPrompt').textContent = 'お題:' + f.t;
+    $('fChips').innerHTML = f.words.map(w => `<span class="chip">${esc(w)}</span>`).join('');
+    $('fAsk').textContent = '↑ この3つの言葉を全部使って、お題について30秒くらい話してみよう。';
+    $('fExLabel').textContent = 'お手本:';
+  }
+  $('fHeard').textContent = '';
+  $('fAnswer').classList.add('hidden');
+  $('fMic').classList.toggle('hidden', !Recog);
+}
+function revealFree() {
+  const f = D[fMode][fOrder[fi]];
+  stopFreeTimer();
+  if (!fRevealed) {
+    fRevealed = true;
+    const pts = fMode === 'sango' ? 5 : 3;
+    S.cnt.said++;
+    if (fMode === 'tsukkomi') S.cnt.tsukkomi++;
+    else if (fMode === 'sango') S.cnt.sango++;
+    else S.cnt.free++;
+    addPoint(pts); markPracticed();
+    $('fPoint').textContent = '+' + pts + 'pt';
+  }
+  if (fMode === 'sango') {
+    $('fTsukkomi').textContent = rand(SANGO_PRAISE);
+    $('fExamples').innerHTML = `<li>${esc(f.ex)}</li>`;
+    $('fWords').innerHTML = '<div class="small">📌 3つの言葉の意味</div>' + (f.w || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
+    $('fWords').classList.remove('hidden');
+    addWords(f.w, true, f.ex); save();
+  } else {
+    $('fTsukkomi').textContent = rand(fMode === 'free' ? FREE_TSUKKOMI : TSUKKOMI_PRAISE);
+    $('fExamples').innerHTML = (f.ex || []).map(e => `<li>${esc(e)}</li>`).join('') +
+      (f.p ? `<div class="small" style="margin-top:6px">💡 ワザ:${esc(f.p)}</div>` : '');
+    $('fWords').classList.add('hidden');
+  }
+  $('fAnswer').classList.remove('hidden');
+}
+function saidFree() {
+  // マイクで聞いている途中なら、聞き取りを終わらせてから答えを出す
+  if (rec) { try { rec.stop(); } catch (e) { stopListen(); } }
+  revealFree();
+}
+function nextFree() {
+  fi++;
+  if (fi >= fOrder.length) { fi = 0; fOrder = shuffle(fOrder); }
+  renderFree();
+}
+// 3語スピーチ用の30秒タイマー
+let fTimerId = null;
+function freeTimer() {
+  stopFreeTimer();
+  let left = 30;
+  $('fTimer').classList.remove('hidden'); $('fTimer').textContent = left;
+  fTimerId = setInterval(() => {
+    left--; $('fTimer').textContent = left > 0 ? left : 'そこまで！';
+    if (left <= 0) { stopFreeTimer(); beep([[660, .2], [660, .2]]); }
+  }, 1000);
+}
+function stopFreeTimer() { if (fTimerId) { clearInterval(fTimerId); fTimerId = null; } }
+
+// ===== マイク(使える環境だけ) =====
+const Recog = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+function stopListen() { if (rec) { try { rec.abort(); } catch (e) {} rec = null; } }
+function startListen(outEl, onDone, continuous) {
+  if (!Recog) return;
+  stopListen();
+  rec = new Recog();
+  rec.lang = 'ja-JP'; rec.interimResults = true; rec.maxAlternatives = 1; rec.continuous = !!continuous;
+  let finalText = '';
+  outEl.textContent = continuous ? '🎤 聞いています…話し終わったら「言った！」を押してください' : '🎤 聞いています…どうぞ話してください';
+  rec.onresult = ev => {
+    let t = '';
+    for (let i = 0; i < ev.results.length; i++) t += ev.results[i][0].transcript;
+    finalText = t;
+    outEl.textContent = '聞こえた言葉:「' + t + '」';
+    if (continuous) onDone(t, true);
+  };
+  rec.onerror = ev => {
+    outEl.textContent = (ev.error === 'not-allowed')
+      ? 'マイクが使えませんでした。声に出して言ったら、となりのボタンを押してください。'
+      : 'うまく聞き取れませんでした。もう一度か、となりのボタンを押してください。';
+  };
+  rec.onend = () => { rec = null; if (finalText) onDone(finalText, false); };
+  try { rec.start(); } catch (e) { outEl.textContent = 'マイクを開始できませんでした。'; }
+}
+function listen() {
+  startListen($('heard'), t => { $('heard').textContent = '聞こえた言葉:「' + t + '」 ばっちり！'; saidIt(); });
+}
+function listenFree() {
+  if (fMode === 'sango') {
+    // 3語スピーチは長く話すので、話している間ずっと聞いて、使えた言葉に印をつける
+    const f = D[fMode][fOrder[fi]];
+    startListen($('fHeard'), (t, live) => {
+      fHeardText = t;
+      const chips = $('fChips').querySelectorAll('.chip');
+      f.words.forEach((w, k) => { if (t.includes(w) && chips[k]) chips[k].classList.add('used'); });
+      if (!live) {
+        const n = f.words.filter(w => t.includes(w)).length;
+        $('fHeard').textContent = 'あなた:「' + t + '」 ― 聞き取れた言葉 ' + n + '/3(漢字の聞き取りがずれることもあります)';
+        revealFree();
+      }
+    }, true);
+    return;
+  }
+  startListen($('fHeard'), t => { $('fHeard').textContent = 'あなた:「' + t + '」'; revealFree(); });
+}
+
+// ===== 言葉帳 =====
+function showBook() { $('bookSearch').value = ''; renderBook(); show('book'); }
+function renderBook() {
+  const qy = $('bookSearch').value.trim();
+  let ents = Object.entries(S.words);
+  if (!ents.length) {
+    $('bookList').innerHTML = '<div class="small">まだ空っぽです。問題で遊ぶと、ここに言葉がたまっていきます。</div>';
+    return;
+  }
+  if (qy) ents = ents.filter(([w, e]) => w.includes(qy) || (e.m || '').includes(qy));
+  ents.sort((a, b) => (b[1].ng - b[1].ok) - (a[1].ng - a[1].ok));
+  const shown = ents.slice(0, 300);
+  $('bookList').innerHTML = `<div class="small">${ents.length}語${ents.length > 300 ? '(上から300語を表示。さがす欄で絞りこめます)' : ''}</div>` + shown.map(([w, e]) => {
+    const pill = e.ng > e.ok ? '<span class="pill weak">苦手</span>' : (e.ok >= 2 ? '<span class="pill good">身についた</span>' : '');
+    return `<div class="book-item"><b>${esc(w)}</b>${pill}<div class="m">${esc(e.m)}</div>${e.ex ? `<div class="small">例:${esc(e.ex)}</div>` : ''}</div>`;
+  }).join('');
+}
+
+// ===== 記録とバッジ =====
+function showRecord() {
+  // カレンダー(今日を含む最近5週間、月曜はじまり)
+  const cal = $('calendar'); cal.innerHTML = '';
+  ['月','火','水','木','金','土','日'].forEach(d => { const h = document.createElement('div'); h.className = 'head'; h.textContent = d; cal.appendChild(h); });
+  const end = new Date();
+  const endIdx = (end.getDay() + 6) % 7; // 月曜=0
+  const start = new Date(end); start.setDate(end.getDate() - endIdx - 28);
+  let total = 0;
+  for (let k = 0; k < 35; k++) {
+    const d = new Date(start); d.setDate(start.getDate() + k);
+    const cell = document.createElement('div');
+    if (d <= end) {
+      const n = S.days[dayStr(d)] || 0; total += n ? 1 : 0;
+      cell.className = n >= 30 ? 'l3' : n >= 10 ? 'l2' : n >= 1 ? 'l1' : '';
+      if (dayStr(d) === today()) cell.classList.add('today-cell');
+      cell.textContent = d.getDate();
+      cell.title = n + '回';
+    } else { cell.style.background = 'none'; }
+    cal.appendChild(cell);
+  }
+  $('recSummary').textContent = `この5週間で${total}日練習 ・ いまの連続${streakNow()}日 ・ 最長${S.maxStreak}日 ・ 答えた問題 合計${S.cnt.answered}問 ・ 声に出した回数 ${S.cnt.said}回`;
+
+  // 遊び方ごとの正解率
+  const acc = {};
+  Object.entries(S.stats).forEach(([id, st]) => {
+    const m = id.split(':')[0];
+    acc[m] = acc[m] || { ok:0, all:0 };
+    acc[m].ok += st.ok; acc[m].all += st.ok + st.ng;
+  });
+  const rows = CHOICE_MODES.concat(['narabe']).filter(m => acc[m] && acc[m].all).map(m =>
+    `<div class="acc-row"><span>${esc(MODE_NAME[m])}</span><span>${Math.round(acc[m].ok / acc[m].all * 100)}%(${acc[m].all}問)</span></div>`);
+  $('accList').innerHTML = rows.join('') || '<div class="small">まだ記録がありません。</div>';
+
+  // バッジ
+  $('badgeCount').textContent = `🏅 バッジ ${Object.keys(S.badges).length} / ${BADGES.length}`;
+  $('badgeList').innerHTML = BADGES.map(([id, ic, name, desc]) =>
+    `<div class="badge ${S.badges[id] ? '' : 'locked'}"><div class="ic">${ic}</div><b>${esc(name)}</b><small>${esc(desc)}${S.badges[id] ? '<br>' + esc(S.badges[id]) : ''}</small></div>`).join('');
+  show('record');
+}
+
+// ===== 設定 =====
+function showSettings() { renderSettings(); show('settings'); }
+function renderSettings() {
+  [...$('segN').children].forEach(b => b.classList.toggle('on', b.textContent.startsWith(S.settings.n + '問')));
+  [...$('segSound').children].forEach((b, k) => b.classList.toggle('on', (k === 0) === !!S.settings.sound));
+}
+function setN(n) { S.settings.n = n; save(); renderSettings(); }
+function setSound(on) { S.settings.sound = on; save(); renderSettings(); if (on) beep(SND_OK); }
+function exportData() {
+  const blob = new Blob([JSON.stringify(S)], { type: 'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `言い換え道場_記録_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast('💾 記録を保存しました(ダウンロードフォルダ)');
+}
+function importData(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const data = JSON.parse(r.result);
+      if (typeof data.point !== 'number') throw new Error('形が違う');
+      if (!confirm(`この記録(${data.point}ポイント)に置きかえます。いまの記録は消えます。よろしいですか？`)) { input.value = ''; return; }
+      localStorage.setItem(KEY, JSON.stringify(data));
+      S = load(); toast('📂 記録を戻しました'); goHome();
+    } catch (e) { alert('このファイルは読み込めませんでした。'); }
+    input.value = '';
+  };
+  r.readAsText(file);
+}
+
+// ===== スマホで電波なしでも動くようにする(ネット上で開いた時だけ) =====
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => {
+    $('offlineNote').textContent = '📶 準備OK:このアプリは電波がなくても遊べます';
+  }).catch(() => {});
+}
+
+renderHome();
+</script>
+</body>
+</html>
