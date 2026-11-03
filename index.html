@@ -106,6 +106,10 @@
   .order-list li.ngline { background: var(--ng-soft); }
   input.search { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .qchip { background: #fff3e0; border: 2px solid #ffcc80; border-radius: 20px; padding: 4px 12px; font-size: 15px; font-weight: bold; cursor: pointer; }
+  .jt-to { font-size: 19px; font-weight: bold; color: var(--ok); }
+  .sd-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 14px; }
+  .sd-bar i { display: block; height: 14px; background: var(--ok); border-radius: 7px; }
   .chip { background: #fff3e0; border: 2px solid #ffcc80; border-radius: 20px; padding: 4px 14px; font-size: 20px; font-weight: bold; }
   .chip.used { background: var(--ok-soft); border-color: var(--ok); }
   .toast-box { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 99; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
@@ -223,6 +227,8 @@
     <div class="section-label">その他</div>
     <button class="ghost" onclick="startReview()">🔁 苦手な問題だけ復習</button>
     <button class="ghost" onclick="showBook()">📖 言葉帳を見る</button>
+    <button class="ghost" onclick="showJiten()">📚 言い換え辞典(「やばい」の代わりをさがす)</button>
+    <button class="ghost" onclick="startShindan()">🩺 語彙力診断(月に1回がおすすめ)<span class="small" id="sdLast"></span></button>
     <div class="offline-note" id="offlineNote"></div>
   </section>
 
@@ -444,6 +450,17 @@
     <button class="ghost" onclick="goHome()">ホームに戻る</button>
   </section>
 
+  <!-- ===== 言い換え辞典 ===== -->
+  <section id="jiten" class="hidden">
+    <h2>📚 言い換え辞典</h2>
+    <div class="small">つい使ってしまう言葉を入れると、場面ごとの言い換えが出ます。話す前やLINEを書く前にどうぞ。</div>
+    <input class="search" id="jtSearch" placeholder="🔍 例:やばい、すごい、疲れた" oninput="renderJiten()" style="margin-top:10px">
+    <div class="chips" id="jtChips"></div>
+    <div class="small" id="jtCount"></div>
+    <div class="card" id="jtList"></div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
   <!-- ===== 記録とバッジ ===== -->
   <section id="record" class="hidden">
     <h2>📅 記録とバッジ</h2>
@@ -451,6 +468,10 @@
       <div class="small">練習した日(最近5週間。色が濃いほどたくさん練習)</div>
       <div class="cal" id="calendar"></div>
       <div class="small" id="recSummary"></div>
+    </div>
+    <div class="card">
+      <div class="small">🩺 語彙力診断の記録(100点満点)</div>
+      <div id="sdHist"></div>
     </div>
     <div class="card">
       <div class="small">遊び方ごとの正解率</div>
@@ -699,7 +720,7 @@ const KEY = 'iikae_dojo_v1';
 function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
     days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
-    daily:{ day:'', c:{}, done:{}, list:[], all:false },
+    daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[],
     cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0 } };
 }
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -717,6 +738,8 @@ function normalize(raw) {
   if (!Array.isArray(s.daily.list)) s.daily.list = [];
   if (!isObj(s.daily.c)) s.daily.c = {};
   if (!isObj(s.daily.done)) s.daily.done = {};
+  if (!Array.isArray(s.shindan)) s.shindan = [];
+  s.shindan = s.shindan.filter(x => isObj(x) && isFinite(Number(x.s)) && typeof x.d === 'string');
   return migrate(s);
 }
 function load() {
@@ -776,7 +799,7 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun','jiten'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
@@ -862,6 +885,8 @@ function record(id, ok) {
 
 // ===== ホーム =====
 function renderHome() {
+  const sdl = S.shindan[S.shindan.length - 1];
+  $('sdLast').textContent = sdl ? `(前回 ${sdl.s}点)` : '';
   const now = titleOf(S.point);
   const next = TITLES.find(([p]) => p > S.point);
   $('titleNow').textContent = now;
@@ -1050,7 +1075,7 @@ function renderQ() {
   } else if (roundKind === 'endless') {
     $('qNum').textContent = `♾ 連続正解 ${qi + 1}問目(最高 ${S.bestStreak}問)`;
   } else {
-    $('qNum').textContent = (roundKind === 'exam' ? '🥋 昇段試験 ' : '') + `${qi + 1} / ${round.length}問目` + (roundKind === 'exam' ? '(8問正解で合格)' : '');
+    $('qNum').textContent = roundKind === 'shindan' ? `🩺 語彙力診断 ${qi + 1} / ${round.length}問目(だんだん難しくなる)` : (roundKind === 'exam' ? '🥋 昇段試験 ' : '') + `${qi + 1} / ${round.length}問目` + (roundKind === 'exam' ? '(8問正解で合格)' : '');
   }
   $('qPoint').textContent = `今回 +${roundPoint}pt`;
   $('qBar').style.width = (roundKind === 'endless' ? Math.min(100, qi / Math.max(S.bestStreak, 10) * 100) : qi / round.length * 100) + '%';
@@ -1089,6 +1114,7 @@ function answer(btn, c) {
   const box = $('qTsukkomi');
   const exp = current.exp ? '<div class="small" style="margin-top:6px">💡 ' + esc(current.exp) + '</div>' : '';
   record(current.id, ok);
+  if (roundKind === 'shindan') sdOk[qi] = ok;
   if (ok) {
     const gain = roundKind === 'course' ? courseCur.pts : roundKind === 'endless' ? 3 : 10;
     roundCorrect++; roundPoint += gain; addPoint(gain); beep(SND_OK);
@@ -1140,6 +1166,7 @@ function showRoundResult() {
   const c = roundCorrect, n = round.length;
   $('rAgain').textContent = 'もう1回';
   if (roundKind === 'exam') return showExamResult(c, n);
+  if (roundKind === 'shindan') return showShindanResult();
   if (roundKind === 'course') return showCourseResult(c, n);
   if (c === n && n >= 5) { S.cnt.perfect++; save(); checkBadges(); beep(SND_UP); }
   $('rLabel').textContent = '今回の結果';
@@ -1589,6 +1616,114 @@ function showExamResult(c, n) {
   $('rAgain').textContent = pass ? 'ホームに戻る' : 'ホームに戻って修行する';
   $('rAgain').onclick = goHome;
   show('result');
+}
+
+// ===== 言い換え辞典 =====
+// 今ある問題(言い換え・大人の言い方・たとえ・難関言い換え・自由に言い換え)から、引ける辞典を作る
+const JT_CHIPS = [['やばい','やば'],['すごい','すご'],['うまい','うま'],['めっちゃ','めっちゃ'],['うれしい','うれし'],['むかつく','むか'],['疲れた','疲れ'],['悲しい','悲し'],['かわいい','かわいい'],['きれい','きれい'],['楽しい','楽し'],['ありがとう','ありがと'],['すみません','すみません']];
+let JT = null;
+function kanaFold(t) { return String(t).replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60)); }
+function buildJiten() {
+  JT = [];
+  const seen = new Set();
+  ['iikae', 'keigo', 'tatoe', 'h_iikae'].forEach(m => D[m].forEach(q => {
+    if (!q.k || !q.a) return;
+    const key = q.k + '|' + q.a; if (seen.has(key)) return; seen.add(key);
+    JT.push({ from: q.k, line: q.l || '', to: [q.a], scene: q.s || '', ex: q.b || '', cat: q.c || '',
+      mean: (q.w || []).map(x => x[0] + '＝' + x[1]).join(' ') });
+  }));
+  (D.free || []).forEach(q => {
+    if (!q.l || !Array.isArray(q.ex)) return;
+    JT.push({ from: q.l, line: '', to: q.ex, scene: q.s || '', ex: '', cat: '自由に言い換え', mean: '' });
+  });
+  JT.forEach(e => { e.hFrom = kanaFold(e.from + ' ' + e.line + ' ' + e.cat); e.hTo = kanaFold(e.to.join(' ') + ' ' + e.mean); });
+}
+function showJiten(q) {
+  if (!JT) buildJiten();
+  $('jtChips').innerHTML = JT_CHIPS.map(([label, stem]) => `<button class="qchip" data-q="${esc(stem)}">${esc(label)}</button>`).join('');
+  $('jtChips').querySelectorAll('.qchip').forEach(b => b.onclick = () => { $('jtSearch').value = b.dataset.q; renderJiten(); });
+  $('jtSearch').value = q || '';
+  renderJiten();
+  show('jiten');
+}
+function renderJiten() {
+  const raw = $('jtSearch').value.trim();
+  if (!raw) {
+    $('jtCount').textContent = `全部で${JT.length}個の言い換えが入っています。上のボタンか、検索で探してください。`;
+    $('jtList').innerHTML = '<div class="small">例:「やば」と入れると、「やばい」「やばかった」の言い換えが全部出ます。</div>';
+    return;
+  }
+  const qy = kanaFold(raw);
+  const hit1 = JT.filter(e => e.hFrom.includes(qy));
+  const hit2 = JT.filter(e => !e.hFrom.includes(qy) && e.hTo.includes(qy));
+  const all = hit1.concat(hit2), MAX = 80;
+  $('jtCount').textContent = all.length ? `「${raw}」で ${all.length}件` + (all.length > MAX ? `(最初の${MAX}件を表示)` : '') : '';
+  if (!all.length) { $('jtList').innerHTML = `<div class="small">「${esc(raw)}」は見つかりませんでした。短く(例:「やばかった」→「やば」)してみてください。</div>`; return; }
+  $('jtList').innerHTML = all.slice(0, MAX).map((e, i) => `<div class="book-item">
+      <div class="small">${esc(e.scene)}</div>
+      <div>「${esc(e.from)}」 → <span class="jt-to">${e.to.map(esc).join('<br>')}</span></div>
+      ${e.ex ? `<div class="m">例:${esc(e.ex)}</div>` : ''}
+      ${e.mean ? `<div class="m">${esc(e.mean)}</div>` : ''}
+      ${TTS_OK ? `<button class="icon-btn" data-i="${i}" style="margin-top:4px">🔊 聞く</button>` : ''}
+    </div>`).join('');
+  $('jtList').querySelectorAll('button[data-i]').forEach(b => b.onclick = () => {
+    const e = all[+b.dataset.i]; speakText(e.ex || e.to.join('。'));
+  });
+}
+
+// ===== 語彙力診断 =====
+// だんだん難しくなる30問。ふつう10問(重さ1)・上級10問(2)・超上級6問(3)・地獄4問(4)。
+// 4択は当てずっぽうでも25%当たるので、その分を差し引いて100点満点にする。
+let sdOk = [], sdW = [];
+const SD_PLAN = [[['imi', 'yomi', 'katakana'], 0, 10, 1], [['h_imi', 'h_yomi', 'h_koji'], 1, 10, 2], [['h_imi', 'h_yomi', 'h_koji'], 2, 6, 3], [['h_imi', 'h_yomi', 'h_koji'], 3, 4, 4]];
+const SD_LABEL = [[85, '辞書級。もう誰にも語彙力が少ないなんて言わせない'], [70, 'かなり高い。言葉を選んで話せるレベル'], [50, '語彙力あり。あとは会話で使うだけ'], [30, 'ふつう。伸びしろたっぷり'], [0, '見習い。毎日の復習でぐんぐん伸びる']];
+function sdLabel(sc) { return SD_LABEL.find(x => sc >= x[0])[1]; }
+function startShindan() {
+  const picks = []; sdW = [];
+  SD_PLAN.forEach(([modes, lv, n, w]) => {
+    let pool = poolOf(modes);
+    if (lv) pool = pool.filter(x => (D[x.m][x.i].lv || 1) === lv);
+    shuffle(pool).slice(0, n).forEach(p => { picks.push(p); sdW.push(w); });
+  });
+  if (picks.length < 10) { alert('問題が足りないため、診断できません。'); return; }
+  played('shindan');
+  roundKind = 'shindan'; againFn = startShindan; sdOk = [];
+  begin(picks);
+}
+function sdScore() {
+  let got = 0, tot = 0;
+  sdW.forEach((w, i) => { tot += w; if (sdOk[i]) got += w; });
+  const r = tot ? got / tot : 0;
+  return Math.round(Math.max(0, (r - 0.25) / 0.75) * 100);
+}
+function showShindanResult() {
+  const sc = sdScore(), prev = S.shindan[S.shindan.length - 1];
+  S.shindan.push({ d: today(), s: sc });
+  if (S.shindan.length > 60) S.shindan = S.shindan.slice(-60);
+  save(); checkBadges(); beep(SND_UP);
+  const byLv = SD_PLAN.map(([, lv, n], k) => {
+    const start = SD_PLAN.slice(0, k).reduce((a, x) => a + x[2], 0);
+    const ok = sdOk.slice(start, start + n).filter(Boolean).length;
+    return `${['ふつう', '上級', '超上級', '地獄'][lv]} ${ok}/${n}`;
+  }).join('・');
+  $('rLabel').textContent = '🩺 語彙力診断の結果';
+  $('rScore').textContent = `${sc}点`;
+  $('rComment').textContent = sdLabel(sc) + '。' +
+    (prev ? `(前回 ${prev.s}点 → 今回 ${sc}点${sc > prev.s ? '。伸びてるぞ' : ''})` : '') +
+    ` 正解数:${byLv}。問題は毎回ちがうので、10点くらいは上下します。`;
+  $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
+  $('rWordsLabel').textContent = '間違えた言葉(復習に回しました)';
+  $('rWords').innerHTML = round.filter((q, i) => !sdOk[i]).flatMap(q => (q.words || []).map(([w, m]) =>
+    `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`)).join('') || '<div class="small">なし。全問正解だ。</div>';
+  $('rAgain').textContent = 'ホームに戻る';
+  $('rAgain').onclick = goHome;
+  show('result');
+}
+function renderShindanHist() {
+  const h = S.shindan.slice(-12);
+  $('sdHist').innerHTML = h.length
+    ? h.map(x => `<div class="sd-bar"><span style="width:5.5em">${esc(x.d.replace(/^\d+-/, '').replace('-', '/'))}</span><i style="width:${Math.max(2, x.s) * 0.6}%"></i><b>${x.s}点</b></div>`).join('')
+    : '<div class="small">まだ受けていません。ホームの「🩺 語彙力診断」から受けられます。</div>';
 }
 
 // ===== 会話シミュレーション =====
@@ -2095,6 +2230,7 @@ function renderBook() {
 
 // ===== 記録とバッジ =====
 function showRecord() {
+  renderShindanHist();
   // カレンダー(今日を含む最近5週間、月曜はじまり)
   const cal = $('calendar'); cal.innerHTML = '';
   ['月','火','水','木','金','土','日'].forEach(d => { const h = document.createElement('div'); h.className = 'head'; h.textContent = d; cal.appendChild(h); });
