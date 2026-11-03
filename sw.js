@@ -1,6 +1,6 @@
 // 電波がない時でも動くように、アプリのファイルをスマホの中に控えておく仕組み。
 // 問題やアプリを直したら VERSION の数字を上げる(スマホ側が新しい物を取り直す)。
-const VERSION = 7;
+const VERSION = 8;
 const CACHE = 'iikae-dojo-v' + VERSION;
 const FILES = [
   './', './index.html', './guide.html', './manifest.json',
@@ -13,6 +13,9 @@ const FILES = [
   './data/tatoe_more.js', './data/tsukkomi_more.js', './data/sango_more.js', './data/free_more2.js',
   './data/kaiwa1.js', './data/kaiwa2.js', './data/kaiwa3.js',
   './data/hard_imi.js', './data/hard_yomi.js', './data/hard_koji.js', './data/hard_iikae.js',
+  './data/yomi_more.js', './data/katakana_more.js', './data/taigi_more.js', './data/imi_more2.js',
+  './data/kaiwa4.js', './data/kaiwa5.js', './data/iikae_more3.js', './data/keigo_more2.js',
+  './data/anaume_more2.js', './data/goyou_more2.js', './data/tatoe_more2.js',
 ];
 
 self.addEventListener('install', e => {

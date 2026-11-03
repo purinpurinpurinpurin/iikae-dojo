@@ -523,24 +523,35 @@
 <script src="data/hard_yomi.js"></script>
 <script src="data/hard_koji.js"></script>
 <script src="data/hard_iikae.js"></script>
+<script src="data/yomi_more.js"></script>
+<script src="data/katakana_more.js"></script>
+<script src="data/taigi_more.js"></script>
+<script src="data/imi_more2.js"></script>
+<script src="data/kaiwa4.js"></script>
+<script src="data/kaiwa5.js"></script>
+<script src="data/iikae_more3.js"></script>
+<script src="data/keigo_more2.js"></script>
+<script src="data/anaume_more2.js"></script>
+<script src="data/goyou_more2.js"></script>
+<script src="data/tatoe_more2.js"></script>
 
 <script>
 // ===== データをまとめる =====
 const D = {
-  iikae:    [].concat(window.QUESTIONS || [], window.IIKAE_MORE || [], window.IIKAE_MORE2 || []),
-  keigo:    [].concat(window.KEIGO || [], window.KEIGO_MORE || []),
-  imi:      [].concat(window.IMI || [], window.IMI_MORE || []),
-  yomi:     window.YOMI || [],
-  katakana: window.KATAKANA || [],
-  taigi:    window.TAIGI || [],
-  anaume:   [].concat(window.ANAUME || [], window.ANAUME_MORE || []),
-  goyou:    [].concat(window.GOYOU || [], window.GOYOU_MORE || []),
-  tatoe:    [].concat(window.TATOE || [], window.TATOE_MORE || []),
+  iikae:    [].concat(window.QUESTIONS || [], window.IIKAE_MORE || [], window.IIKAE_MORE2 || [], window.IIKAE_MORE3 || []),
+  keigo:    [].concat(window.KEIGO || [], window.KEIGO_MORE || [], window.KEIGO_MORE2 || []),
+  imi:      [].concat(window.IMI || [], window.IMI_MORE || [], window.IMI_MORE2 || []),
+  yomi:     [].concat(window.YOMI || [], window.YOMI_MORE || []),
+  katakana: [].concat(window.KATAKANA || [], window.KATAKANA_MORE || []),
+  taigi:    [].concat(window.TAIGI || [], window.TAIGI_MORE || []),
+  anaume:   [].concat(window.ANAUME || [], window.ANAUME_MORE || [], window.ANAUME_MORE2 || []),
+  goyou:    [].concat(window.GOYOU || [], window.GOYOU_MORE || [], window.GOYOU_MORE2 || []),
+  tatoe:    [].concat(window.TATOE || [], window.TATOE_MORE || [], window.TATOE_MORE2 || []),
   narabe:   [].concat(window.NARABE || [], window.NARABE_MORE || []),
   free:     [].concat(window.FREE || [], window.FREE_MORE || [], window.FREE_MORE2 || []),
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || []),
-  kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || []),
+  kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || []),
   h_imi:    window.HARD_IMI || [],
   h_yomi:   window.HARD_YOMI || [],
   h_koji:   window.HARD_KOJI || [],
