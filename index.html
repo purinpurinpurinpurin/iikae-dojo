@@ -106,6 +106,11 @@
   .order-list li.ngline { background: var(--ng-soft); }
   input.search { width: 100%; font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 10px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  .rg-got { display: inline-block; background: var(--ok-soft); border: 2px solid var(--ok); border-radius: 16px; padding: 2px 10px; margin: 3px; font-weight: bold; }
+  .rg-miss { display: inline-block; background: #f3f3f3; border: 2px dashed #bbb; border-radius: 16px; padding: 2px 10px; margin: 3px; color: var(--sub); }
+  .rg-all span { display: inline-block; padding: 2px 8px; margin: 2px; border-radius: 12px; background: #fff3e0; }
+  .rg-all span.got { background: var(--ok-soft); color: var(--ok); font-weight: bold; }
+  .rg-big { font-size: 48px; font-weight: bold; color: var(--main); text-align: center; }
   .qchip { background: #fff3e0; border: 2px solid #ffcc80; border-radius: 20px; padding: 4px 12px; font-size: 15px; font-weight: bold; cursor: pointer; }
   .jt-to { font-size: 19px; font-weight: bold; color: var(--ok); }
   .sd-bar { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 14px; }
@@ -450,6 +455,43 @@
     <button class="ghost" onclick="goHome()">ホームに戻る</button>
   </section>
 
+  <!-- ===== 類語マラソン ===== -->
+  <section id="ruigo" class="hidden">
+    <div class="card">
+      <span class="cat">🏃 類語マラソン</span>
+      <div class="small" style="margin-top:6px">お題の言葉を、60秒でできるだけたくさん言い換えよう。打つか、マイクで言う。</div>
+      <div class="prompt" id="rgTopic" style="margin-top:10px"></div>
+      <div class="small" id="rgDesc"></div>
+      <div class="small" id="rgBest"></div>
+      <div id="rgReady">
+        <button class="big" onclick="rgStart()" style="margin-top:12px">▶ スタート(60秒)</button>
+      </div>
+      <div id="rgPlay" class="hidden">
+        <div class="rg-big" id="rgTime">60</div>
+        <div class="row">
+          <input class="search" id="rgInput" placeholder="言い換えを打って Enter(いくつでも)" enterkeyhint="send" autocomplete="off">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="said" onclick="rgSubmit()" style="margin:0">追加</button>
+          <button class="mic" id="rgMic" onclick="rgListen()" style="margin:0">🎤 マイクで言う</button>
+        </div>
+        <div class="heard" id="rgHeard"></div>
+        <div class="small">見つけた言い換え:<b id="rgCount">0</b>個</div>
+        <div id="rgGot"></div>
+        <div id="rgMissBox" class="hidden"><div class="small" style="margin-top:6px">一覧にない言葉(合っていると思ったら押すと数に入る)</div><div id="rgMiss"></div></div>
+      </div>
+      <div id="rgEnd" class="hidden">
+        <div class="tsukkomi ok"><div class="who">師範</div><span id="rgComment"></span></div>
+        <div class="small" style="margin-top:8px">ほかにも、こんな言い方がある(<b>緑</b>は言えたもの):</div>
+        <div class="rg-all" id="rgAll"></div>
+        <div class="words" id="rgWords"></div>
+        <div class="small" id="rgPoint"></div>
+        <button class="next" onclick="nextRuigo()">次のお題 ▶</button>
+      </div>
+    </div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
   <!-- ===== 言い換え辞典 ===== -->
   <section id="jiten" class="hidden">
     <h2>📚 言い換え辞典</h2>
@@ -564,6 +606,7 @@
 <script src="data/tsukkomi_more2.js"></script>
 <script src="data/sango_more2.js"></script>
 <script src="data/kaiwa6.js"></script>
+<script src="data/ruigo.js"></script>
 
 <script>
 // ===== データをまとめる =====
@@ -582,6 +625,7 @@ const D = {
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || [], window.TSUKKOMI_MORE2 || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || [], window.SANGO_MORE2 || []),
   kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || [], window.KAIWA6 || []),
+  ruigo:    window.RUIGO || [],
   h_imi:    [].concat(window.HARD_IMI || [], window.HARD_IMI2 || []),
   h_yomi:   [].concat(window.HARD_YOMI || [], window.HARD_YOMI2 || []),
   h_koji:   [].concat(window.HARD_KOJI || [], window.HARD_KOJI2 || []),
@@ -618,6 +662,7 @@ const MODES = [
   { id:'free',     g:2, icon:'🎤', name:'自由に言い換え', desc:'自分の言葉で言い換えて声に出す', start:() => startFree('free') },
   { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
   { id:'kaiwa',    g:2, icon:'🗨', name:'会話シミュレーション', desc:'相手のセリフに、いちばん良い返しを選んで4往復', start:() => startKaiwa() },
+  { id:'ruigo',    g:2, icon:'🏃', name:'類語マラソン', desc:'60秒で言い換えを何個言えるか勝負', start:() => startRuigo() },
   { id:'reibun',   g:2, icon:'✍', name:'例文づくり', desc:'覚えた言葉で自分の例文を作る', start:() => startReibun() },
   { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
   { id:'course',   g:3, icon:'🔥', name:'難関コース',     desc:'上級・超上級・地獄の3段階', start:() => showCourse() },
@@ -721,6 +766,8 @@ const BADGES = [
   ['master200','🏔', '定着200語',      '間隔をあけた復習で200問が定着', s => masteredCount(s) >= 200],
   ['reibun20', '✍', '例文職人',       '自分の例文を20個作った',       s => s.cnt.reibun >= 20],
   ['useword10','🗣', '実戦の鬼',       '言葉帳の言葉を会話で10回使った', s => s.cnt.usedWord >= 10],
+  ['ruigo10',  '🏃', '類語ランナー',   '類語マラソンを10回走った',     s => s.cnt.ruigo >= 10],
+  ['ruigo15',  '🏅', '言葉の泉',       '類語マラソン1回で15個言えた',  s => s.ruigoBest >= 15],
   ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
 ];
 
@@ -729,8 +776,8 @@ const KEY = 'iikae_dojo_v1';
 function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
     days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
-    daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[],
-    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0 } };
+    daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[], ruigo:{}, ruigoBest:0,
+    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0, ruigo:0 } };
 }
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // 読み込んだ記録の形を整える(おかしな所は空に戻す)。壊れていたら例外を出す
@@ -738,8 +785,8 @@ function normalize(raw) {
   if (!isObj(raw)) throw new Error('形が違う');
   const b = blank();
   const s = Object.assign(b, raw);
-  for (const k of ['stats', 'words', 'days', 'badges', 'played', 'kplayed', 'course', 'boss']) if (!isObj(s[k])) s[k] = {};
-  for (const k of ['point', 'streak', 'maxStreak', 'best', 'rank', 'bestStreak']) { s[k] = Number(s[k]); if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; }
+  for (const k of ['stats', 'words', 'days', 'badges', 'played', 'kplayed', 'course', 'boss', 'ruigo']) if (!isObj(s[k])) s[k] = {};
+  for (const k of ['point', 'streak', 'maxStreak', 'best', 'rank', 'bestStreak', 'ruigoBest']) { s[k] = Number(s[k]); if (!isFinite(s[k]) || s[k] < 0) s[k] = 0; }
   s.rank = Math.min(Math.floor(s.rank), 19);
   s.settings = Object.assign(blank().settings, isObj(s.settings) ? s.settings : {});
   s.cnt = Object.assign(blank().cnt, isObj(s.cnt) ? s.cnt : {});
@@ -808,12 +855,12 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun','jiten'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun','jiten','ruigo'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
 }
-function goHome() { stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); stopQTimer(); stopBossTimer(); renderHome(); show('home'); }
+function goHome() { stopRuigoTimer(); stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); stopQTimer(); stopBossTimer(); renderHome(); show('home'); }
 // 画面が切り替わった直後0.4秒は、選択肢を押しても反応しない(「次へ」の二度押し対策)
 let shownAt = 0;
 function justShown() { shownAt = Date.now(); }
@@ -1626,6 +1673,126 @@ function showExamResult(c, n) {
   $('rAgain').onclick = goHome;
   show('result');
 }
+
+// ===== 類語マラソン =====
+// 打った言葉・言った言葉を、お題の言い換え一覧(ok)と照らし合わせて数える。
+// 活用の違い(「喜ばしかった」など)は、語尾1文字を除いた形で前方一致させる。
+let rgOrder = [], rgi = 0, rgCur = null, rgGot = new Set(), rgSelf = [], rgMissList = [], rgLeft = 0, rgTimerId = null, rgOn = false;
+const RG_SEC = 60;
+function rgNorm(t) { return kanaFold(String(t)).replace(/[\s　、。,.!！?？・「」『』()（）〜~ー-]/g, ''); }
+function rgStem(w) { const n = rgNorm(w); if (n.length >= 4 && n.endsWith('する')) return n.slice(0, -2); return /[いうくぐすつぬぶむる]$/.test(n) && n.length >= 2 ? n.slice(0, -1) : n; }
+// 語尾を除いた形が漢字1文字(「励む」→「励」など)でも、漢字なら前方一致に使う
+function rgStemOk(st) { return st.length >= 2 || /^[一-鿿々]$/.test(st); }
+function rgMatchPiece(p) {
+  // 1つの言葉(打った1語)に当たる ok を探す
+  const n = rgNorm(p); if (!n) return null;
+  const exact = rgCur.ok.find(w => rgNorm(w) === n);
+  if (exact) return exact;
+  return rgCur.ok.find(w => { const wn = rgNorm(w), st = rgStem(w);
+    return n === wn || (rgStemOk(st) && n.startsWith(st) && n.length <= wn.length + 3); }) || null;
+}
+function rgMatchText(t) {
+  // 声のように文で来た時は、文の中に含まれる ok を全部拾う
+  const n = rgNorm(t);
+  return rgCur.ok.filter(w => { const st = rgStem(w); return st.length >= 2 && n.includes(st); });
+}
+function startRuigo() {
+  if (!D.ruigo.length) { alert('お題のデータがまだありません。'); return; }
+  played('ruigo'); roundKind = 'normal';
+  rgOrder = shuffle(D.ruigo.map((_, i) => i)); rgi = 0;
+  show('ruigo'); renderRuigo();
+}
+function renderRuigo() {
+  stopRuigoTimer(); stopListen();
+  rgCur = D.ruigo[rgOrder[rgi % rgOrder.length]];
+  rgGot = new Set(); rgSelf = []; rgMissList = []; rgOn = false;
+  $('rgTopic').textContent = '「' + rgCur.t + '」';
+  $('rgDesc').textContent = rgCur.d || '';
+  const b = S.ruigo[rgCur.t];
+  $('rgBest').textContent = b ? `このお題の最高記録:${b}個` : '';
+  $('rgReady').classList.remove('hidden'); $('rgPlay').classList.add('hidden'); $('rgEnd').classList.add('hidden');
+  $('rgMic').classList.toggle('hidden', !Recog);
+  $('rgInput').value = ''; $('rgHeard').textContent = '';
+  rgDraw();
+}
+function rgStart() {
+  if (tooSoon()) return;
+  rgOn = true; rgLeft = RG_SEC;
+  $('rgReady').classList.add('hidden'); $('rgPlay').classList.remove('hidden');
+  $('rgTime').textContent = rgLeft;
+  $('rgInput').focus();
+  rgTimerId = setInterval(() => {
+    rgLeft--; $('rgTime').textContent = Math.max(0, rgLeft);
+    if (rgLeft === 10) beep([[880, .08]]);
+    if (rgLeft <= 0) rgEnd();
+  }, 1000);
+}
+function stopRuigoTimer() { if (rgTimerId) { clearInterval(rgTimerId); rgTimerId = null; } }
+function rgAdd(words) {
+  let added = 0;
+  words.forEach(w => { if (!rgGot.has(w)) { rgGot.add(w); added++; } });
+  if (added) beep(SND_OK);
+  return added;
+}
+function rgSubmit() {
+  if (!rgOn) return;
+  const raw = $('rgInput').value; $('rgInput').value = '';
+  raw.split(/[、,，\s　。]+/).filter(Boolean).forEach(p => {
+    const hit = rgMatchPiece(p);
+    if (hit) rgAdd([hit]);
+    else if (rgNorm(p) !== rgNorm(rgCur.t) && !rgMissList.includes(p)) rgMissList.push(p);
+  });
+  rgDraw();
+  $('rgInput').focus();
+}
+function rgListen() {
+  if (!rgOn) return;
+  startListen($('rgHeard'), (t, live) => {
+    if (!rgOn) return;
+    const hits = rgMatchText(t);
+    rgAdd(hits); rgDraw();
+    if (!live) $('rgHeard').textContent = '聞こえた言葉:「' + t + '」' + (hits.length ? '' : '(一覧の言葉は見つからなかった)');
+  }, true);
+}
+function rgSelfOk(i) {
+  const p = rgMissList[i]; if (p === undefined || !rgOn) return;
+  rgMissList.splice(i, 1); rgSelf.push(p); beep(SND_OK); rgDraw();
+}
+function rgDraw() {
+  const n = rgGot.size + rgSelf.length;
+  $('rgCount').textContent = n;
+  $('rgGot').innerHTML = [...rgGot].map(w => `<span class="rg-got">${esc(w)}</span>`).join('') +
+    rgSelf.map(w => `<span class="rg-got" style="opacity:.75">${esc(w)} ✓</span>`).join('');
+  $('rgMissBox').classList.toggle('hidden', !rgMissList.length);
+  $('rgMiss').innerHTML = rgMissList.map((w, i) => `<button class="rg-miss" data-i="${i}">${esc(w)} ＋</button>`).join('');
+  $('rgMiss').querySelectorAll('button').forEach(b => b.onclick = () => rgSelfOk(+b.dataset.i));
+}
+function rgEnd() {
+  if (!rgOn) return;
+  rgOn = false; stopRuigoTimer(); stopListen();
+  const n = rgGot.size + rgSelf.length, prev = S.ruigo[rgCur.t] || 0;
+  if (n > prev) S.ruigo[rgCur.t] = n;
+  S.ruigoBest = Math.max(S.ruigoBest || 0, n);
+  S.cnt.ruigo++;
+  const pts = Math.min(n, 20) * 3;
+  if (pts) addPoint(pts);
+  addWords(rgCur.w, true);
+  markPracticed(); save(); checkBadges();
+  beep([[660, .2], [660, .2]]);
+  $('rgPlay').classList.add('hidden'); $('rgEnd').classList.remove('hidden');
+  $('rgComment').textContent = `${n}個！` + (n > prev && prev ? `(前の記録 ${prev}個を更新)` : '') + ' ' +
+    (n >= 15 ? '言葉が泉のように湧いてるな。もう「やばい」に頼る必要はない。' :
+     n >= 10 ? 'やるじゃないか。その引き出し、会話でも開けていけ。' :
+     n >= 5 ? '悪くない。下の一覧から、使えそうなのを1つ持ち帰れ。' :
+     '60秒は短いよな。下の一覧を眺めて、次は倍を狙え。');
+  $('rgAll').innerHTML = rgCur.ok.map(w => `<span class="${rgGot.has(w) ? 'got' : ''}">${esc(w)}</span>`).join('');
+  $('rgWords').innerHTML = (rgCur.w || []).map(([w, m]) => `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`).join('');
+  $('rgPoint').textContent = pts ? `+${pts}ポイント(合計 ${S.point})` : '';
+}
+function nextRuigo() { if (tooSoon()) return; rgi++; renderRuigo(); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'rgInput' && !e.isComposing) { e.preventDefault(); rgSubmit(); }
+});
 
 // ===== 言い換え辞典 =====
 // 今ある問題(言い換え・大人の言い方・たとえ・難関言い換え・自由に言い換え)から、引ける辞典を作る
