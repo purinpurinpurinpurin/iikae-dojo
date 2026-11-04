@@ -607,6 +607,9 @@
 <script src="data/sango_more2.js"></script>
 <script src="data/kaiwa6.js"></script>
 <script src="data/ruigo.js"></script>
+<script src="data/ruigo_more.js"></script>
+<script src="data/kaiwa7.js"></script>
+<script src="data/kaiwa8.js"></script>
 
 <script>
 // ===== データをまとめる =====
@@ -624,8 +627,8 @@ const D = {
   free:     [].concat(window.FREE || [], window.FREE_MORE || [], window.FREE_MORE2 || [], window.FREE_MORE3 || []),
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || [], window.TSUKKOMI_MORE2 || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || [], window.SANGO_MORE2 || []),
-  kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || [], window.KAIWA6 || []),
-  ruigo:    window.RUIGO || [],
+  kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || [], window.KAIWA6 || [], window.KAIWA7 || [], window.KAIWA8 || []),
+  ruigo:    [].concat(window.RUIGO || [], window.RUIGO_MORE || []),
   h_imi:    [].concat(window.HARD_IMI || [], window.HARD_IMI2 || []),
   h_yomi:   [].concat(window.HARD_YOMI || [], window.HARD_YOMI2 || []),
   h_koji:   [].concat(window.HARD_KOJI || [], window.HARD_KOJI2 || []),
@@ -660,7 +663,7 @@ const MODES = [
   { id:'tatoe',    g:1, icon:'🎨', name:'たとえ上手',     desc:'ぴったりの「〜みたい」を選ぶ', start:() => startChoice('tatoe') },
   { id:'narabe',   g:1, icon:'📶', name:'強さ並べ替え',   desc:'似た言葉を弱い順に並べる', start:() => startNarabe() },
   { id:'free',     g:2, icon:'🎤', name:'自由に言い換え', desc:'自分の言葉で言い換えて声に出す', start:() => startFree('free') },
-  { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出せ', start:() => startFree('tsukkomi') },
+  { id:'tsukkomi', g:2, icon:'🤚', name:'ツッコミ道場',   desc:'ボケに声でツッコむ。語彙でキレを出そう', start:() => startFree('tsukkomi') },
   { id:'kaiwa',    g:2, icon:'🗨', name:'会話シミュレーション', desc:'相手のセリフに、いちばん良い返しを選んで4往復', start:() => startKaiwa() },
   { id:'ruigo',    g:2, icon:'🏃', name:'類語マラソン', desc:'60秒で言い換えを何個言えるか勝負', start:() => startRuigo() },
   { id:'reibun',   g:2, icon:'✍', name:'例文づくり', desc:'覚えた言葉で自分の例文を作る', start:() => startReibun() },
@@ -682,38 +685,38 @@ function modeCount(id) {
 }
 
 const OK_LINES = [
-  'お見事。言葉にちゃんと中身が入ったな。',
-  '正解。「やばい」で済ませてた頃の自分に聞かせてやれ。',
-  'いいね。今の言い方なら、聞いた人に景色が浮かぶ。',
-  '正解。語彙力少ないなんて、もう言わせない方向で。',
-  'そう、それ。ちょっと大人の会話っぽくなったぞ。',
-  '正解。この調子で、口ぐせを1個ずつ入れ替えていこう。',
-  '正解。今のは会話で使ったら一目置かれるやつだ。',
-  'やるじゃないか。知ってるだけじゃなく、口に出せたら完璧だ。',
-  '正解。その言葉、今週中に1回使ってみろ。',
-  'さすが。だんだん言葉の引き出しが増えてきたな。',
+  'お見事！言葉にちゃんと気持ちが乗ってるね。',
+  '正解！その言い方、すごく伝わるよ。',
+  'いいね！今の言い方なら、聞いた人に景色が浮かぶよ。',
+  '正解！言葉の引き出し、確実に増えてるよ。',
+  'そう、それ！ぐっと大人の会話っぽくなったね。',
+  '正解！この調子で、口ぐせを1個ずつ入れ替えていこう。',
+  '正解！今のは会話で使ったら一目置かれる言葉だよ。',
+  'すごい！知ってるだけじゃなく、口に出せたらもう完璧。',
+  '正解！その言葉、今週どこかで使ってみるともっと身につくよ。',
+  'さすが！だんだん言葉選びが上手になってきたね。',
 ];
 const FREE_TSUKKOMI = [
-  '言えたなら上出来。「やばい」1個で済ませるより、よっぽど伝わるぞ。',
-  '正解なんてない。大事なのは、口に出す回数だ。',
-  '今の、ちょっとでも詳しく言えてたら合格。お手本と比べてみろ。',
-  '言葉は、使ってナンボ。頭で知ってるだけの言葉は、話す時に出てこないからな。',
+  '言えただけで上出来！「やばい」1個で済ませるより、ずっと伝わるよ。',
+  '正解はひとつじゃないよ。口に出せたこと自体がすばらしい！',
+  '少しでも詳しく言えてたら合格！お手本と比べて、いいところを持ち帰ろう。',
+  '声に出した言葉は、話す時にちゃんと出てくるようになるよ。その調子！',
 ];
 const TSUKKOMI_PRAISE = [
-  'ツッコミは言葉選びとスピード。お手本の言い回しを1個盗んでいけ。',
-  '声に出せた時点で半分勝ち。あとは言葉のキレだ。',
-  '今のツッコミ、お手本より面白かったなら、それが正解だ。',
+  'ナイスツッコミ！お手本の言い回しも、1個持ち帰ってみよう。',
+  '声に出せた時点でもう半分成功！あとは楽しんで磨くだけ。',
+  '今のツッコミ、お手本より面白かったなら、それが正解だよ。',
   'たとえツッコミは語彙力の見せ場。引き出しを増やしていこう。',
 ];
 const SANGO_PRAISE = [
-  '3語ぜんぶ入れられたら合格。入らなかった言葉は、お手本の使い方を盗め。',
-  '30秒しゃべるのは、慣れるまでしんどい。それを毎日やる人が話し上手になる。',
-  '詰まってもいい。言葉をつなげる練習だ。',
-  '知ってる言葉を「使える言葉」に変えるのが、このスピーチの目的だ。',
+  '3語入れられたらすごい！入らなかった言葉は、お手本の使い方を参考にしてみてね。',
+  '30秒しゃべるのは大変なのに、よく頑張ったね。続けるほど話し上手になるよ。',
+  '詰まっても大丈夫。言葉をつなげようとしたこと自体がいい練習だよ。',
+  '知ってる言葉が「使える言葉」に変わっていく途中だよ。いい感じ！',
 ];
 
 const TITLES = [
-  [0,    '「やばい」しか言えない人'],
+  [0,    '言葉の旅のはじまり'],
   [30,   '言い換え見習い'],
   [80,   '言葉の素振り中'],
   [150,  '語彙の中堅'],
@@ -794,6 +797,14 @@ function normalize(raw) {
   if (!Array.isArray(s.daily.list)) s.daily.list = [];
   if (!isObj(s.daily.c)) s.daily.c = {};
   if (!isObj(s.daily.done)) s.daily.done = {};
+  for (const w of Object.keys(s.words)) {
+    const e = s.words[w];
+    if (!isObj(e)) { delete s.words[w]; continue; }
+    if (e.mine !== undefined && !Array.isArray(e.mine)) e.mine = [];
+    e.ok = Number(e.ok) || 0; e.ng = Number(e.ng) || 0;
+  }
+  s.daily.list = s.daily.list.filter(isObj);
+  if (![5, 10, 20].includes(Number(s.settings.n))) s.settings.n = 5; else s.settings.n = Number(s.settings.n);
   if (!Array.isArray(s.shindan)) s.shindan = [];
   s.shindan = s.shindan.filter(x => isObj(x) && isFinite(Number(x.s)) && typeof x.d === 'string');
   return migrate(s);
@@ -860,7 +871,7 @@ function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
 }
-function goHome() { stopRuigoTimer(); stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); stopQTimer(); stopBossTimer(); renderHome(); show('home'); }
+function goHome() { stopRuigoTimer(); rgOn = false; stopListen(); stopTimer(); stopFreeTimer(); stopSpeak(); stopQTimer(); stopBossTimer(); renderHome(); show('home'); }
 // 画面が切り替わった直後0.4秒は、選択肢を押しても反応しない(「次へ」の二度押し対策)
 let shownAt = 0;
 function justShown() { shownAt = Date.now(); }
@@ -880,6 +891,7 @@ function beep(seq) {
   if (!S.settings.sound) return;
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
     let t = AC.currentTime;
     seq.forEach(([f, d, type]) => {
       const o = AC.createOscillator(), g = AC.createGain();
@@ -1180,7 +1192,7 @@ function answer(btn, c) {
     beep(SND_NG);
     if (btn) btn.classList.add('wrong');
     box.className = 'tsukkomi ng';
-    box.innerHTML = '<div class="who">❌ 師範のツッコミ</div>' + esc(c.tk || '') +
+    box.innerHTML = '<div class="who">🌱 師範からひと言</div>' + esc(c.tk || '') +
       '<br><span class="small">正解は「' + esc(current.answer) + '」。</span>' + exp;
   }
   addWords(current.words, ok, current.speak);
@@ -1206,7 +1218,7 @@ function saidIt() {
 }
 
 function nextQ() {
-  stopQTimer();
+  stopQTimer(); stopListen();
   if (roundKind === 'endless') {
     if (!lastOk) return showEndlessResult(roundCorrect);
     const p = endlessPick(); round.push(makeQ(p.m, p.i));
@@ -1228,10 +1240,10 @@ function showRoundResult() {
   $('rLabel').textContent = '今回の結果';
   $('rScore').textContent = `${c} / ${n}`;
   $('rComment').textContent =
-    c === n ? '全問正解。今日から「やばい」は封印だ。' :
-    c >= n * 0.6 ? 'なかなかやるな。間違えた問題は、復習でまた出すからな。' :
-    c >= 1 ? '伸びしろしかない。知らない言葉に会えた分だけ得してるぞ。' :
-             '全滅か。安心しろ、ここで覚えれば明日の会話では勝てる。';
+    c === n ? '全問正解！すばらしい。言葉の引き出しがどんどん増えてるね。' :
+    c >= n * 0.6 ? 'よくできました！間違えた問題は復習でまた出るから、次はきっと大丈夫。' :
+    c >= 1 ? 'ナイスチャレンジ！知らない言葉に出会えた分だけ、確実に前進してるよ。' :
+             '今日は新しい言葉にたくさん出会えた日！ここで覚えた言葉は、明日の会話で役に立つよ。';
   $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = '今回出てきた言葉';
   $('rWords').innerHTML = round.flatMap(q => (q.words || []).map(([w, m]) =>
@@ -1294,7 +1306,7 @@ function narabeJudge() {
   } else {
     beep(SND_NG);
     box.className = 'tsukkomi ng';
-    box.innerHTML = '<div class="who">❌ 惜しい</div>言葉の「温度」を感じ取れ。強さが分かると、場面に合わせて使い分けられるようになる。';
+    box.innerHTML = '<div class="who">🌱 惜しい！</div>いい線いってるよ。言葉の「温度」の違いが分かってくると、場面に合わせて使い分けられるようになるよ。';
   }
   $('nOrder').innerHTML = q.items.map((t, k) =>
     `<li class="${nSel[k] === t ? 'okline' : 'ngline'}">${k + 1}. ${esc(t)}${nSel[k] !== t ? ' <span class="small">(あなた:' + esc(nSel[k]) + ')</span>' : ''}</li>`).join('') +
@@ -1386,7 +1398,7 @@ function endTime(quit) {
   if (newBest) beep(SND_UP);
   $('rLabel').textContent = '60秒タイムアタックの結果';
   $('rScore').textContent = `${tScore}問正解`;
-  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.best}問。次は超えろ。`;
+  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.best}問。次はきっと超えられるよ！`;
   $('rPoint').textContent = `+${pts}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = tMiss.length ? '間違えた問題(覚えて帰れ)' : '間違えた問題';
   $('rWords').innerHTML = tMiss.map(q =>
@@ -1664,7 +1676,7 @@ function showExamResult(c, n) {
   $('rScore').textContent = `${c} / ${n}`;
   $('rComment').textContent = pass
     ? `合格！「${from}」から「${RANKS[S.rank]}」に昇段だ。`
-    : `不合格。合格は8問以上。間違えた問題は復習に回したから、出直してこい。`;
+    : `今回はあと一歩！合格は8問以上。間違えた問題は復習に入れておいたから、また挑戦しよう。`;
   $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = '試験に出た言葉';
   $('rWords').innerHTML = round.flatMap(q => (q.words || []).map(([w, m]) =>
@@ -1740,7 +1752,7 @@ function rgSubmit() {
   raw.split(/[、,，\s　。]+/).filter(Boolean).forEach(p => {
     const hit = rgMatchPiece(p);
     if (hit) rgAdd([hit]);
-    else if (rgNorm(p) !== rgNorm(rgCur.t) && !rgMissList.includes(p)) rgMissList.push(p);
+    else if (rgNorm(p) !== rgNorm(rgCur.t) && !rgMissList.includes(p) && !rgSelf.some(x => rgNorm(x) === rgNorm(p))) rgMissList.push(p);
   });
   rgDraw();
   $('rgInput').focus();
@@ -1756,7 +1768,9 @@ function rgListen() {
 }
 function rgSelfOk(i) {
   const p = rgMissList[i]; if (p === undefined || !rgOn) return;
-  rgMissList.splice(i, 1); rgSelf.push(p); beep(SND_OK); rgDraw();
+  rgMissList.splice(i, 1);
+  if (rgSelf.some(x => rgNorm(x) === rgNorm(p))) { rgDraw(); return; }
+  rgSelf.push(p); beep(SND_OK); rgDraw();
 }
 function rgDraw() {
   const n = rgGot.size + rgSelf.length;
@@ -1769,6 +1783,7 @@ function rgDraw() {
 }
 function rgEnd() {
   if (!rgOn) return;
+  if ($('rgInput').value.trim()) rgSubmit();
   rgOn = false; stopRuigoTimer(); stopListen();
   const n = rgGot.size + rgSelf.length, prev = S.ruigo[rgCur.t] || 0;
   if (n > prev) S.ruigo[rgCur.t] = n;
@@ -1781,17 +1796,17 @@ function rgEnd() {
   beep([[660, .2], [660, .2]]);
   $('rgPlay').classList.add('hidden'); $('rgEnd').classList.remove('hidden');
   $('rgComment').textContent = `${n}個！` + (n > prev && prev ? `(前の記録 ${prev}個を更新)` : '') + ' ' +
-    (n >= 15 ? '言葉が泉のように湧いてるな。もう「やばい」に頼る必要はない。' :
-     n >= 10 ? 'やるじゃないか。その引き出し、会話でも開けていけ。' :
-     n >= 5 ? '悪くない。下の一覧から、使えそうなのを1つ持ち帰れ。' :
-     '60秒は短いよな。下の一覧を眺めて、次は倍を狙え。');
+    (n >= 15 ? '言葉が泉のように湧いてるね！本当にすごい。' :
+     n >= 10 ? 'すごい！その引き出し、会話でもどんどん開けていこう。' :
+     n >= 5 ? 'いい調子！下の一覧から、使えそうなのを1つ持ち帰ろう。' :
+     '60秒って短いよね。下の一覧から、気に入った言葉を1つ覚えて帰ろう！');
   $('rgAll').innerHTML = rgCur.ok.map(w => `<span class="${rgGot.has(w) ? 'got' : ''}">${esc(w)}</span>`).join('');
   $('rgWords').innerHTML = (rgCur.w || []).map(([w, m]) => `<div class="book-item"><b>${esc(w)}</b><div class="m">${esc(m)}</div></div>`).join('');
   $('rgPoint').textContent = pts ? `+${pts}ポイント(合計 ${S.point})` : '';
 }
 function nextRuigo() { if (tooSoon()) return; rgi++; renderRuigo(); }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'rgInput' && !e.isComposing) { e.preventDefault(); rgSubmit(); }
+  if (e.key === 'Enter' && document.activeElement && document.activeElement.id === 'rgInput' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); rgSubmit(); }
 });
 
 // ===== 言い換え辞典 =====
@@ -1852,7 +1867,7 @@ function renderJiten() {
 // 4択は当てずっぽうでも25%当たるので、その分を差し引いて100点満点にする。
 let sdOk = [], sdW = [];
 const SD_PLAN = [[['imi', 'yomi', 'katakana'], 0, 10, 1], [['h_imi', 'h_yomi', 'h_koji'], 1, 10, 2], [['h_imi', 'h_yomi', 'h_koji'], 2, 6, 3], [['h_imi', 'h_yomi', 'h_koji'], 3, 4, 4]];
-const SD_LABEL = [[85, '辞書級。もう誰にも語彙力が少ないなんて言わせない'], [70, 'かなり高い。言葉を選んで話せるレベル'], [50, '語彙力あり。あとは会話で使うだけ'], [30, 'ふつう。伸びしろたっぷり'], [0, '見習い。毎日の復習でぐんぐん伸びる']];
+const SD_LABEL = [[85, '辞書級！あなたの語彙力は本当にすごい'], [70, 'かなり高い。言葉を選んで話せるレベル'], [50, '語彙力あり。あとは会話で使うだけ'], [30, 'いい感じ！ここからぐんぐん伸びるよ'], [0, 'スタート地点！毎日の復習で、伸びるのがいちばん楽しい時期だよ']];
 function sdLabel(sc) { return SD_LABEL.find(x => sc >= x[0])[1]; }
 function startShindan() {
   const picks = []; sdW = [];
@@ -1885,7 +1900,7 @@ function showShindanResult() {
   $('rLabel').textContent = '🩺 語彙力診断の結果';
   $('rScore').textContent = `${sc}点`;
   $('rComment').textContent = sdLabel(sc) + '。' +
-    (prev ? `(前回 ${prev.s}点 → 今回 ${sc}点${sc > prev.s ? '。伸びてるぞ' : ''})` : '') +
+    (prev ? `(前回 ${prev.s}点 → 今回 ${sc}点${sc > prev.s ? '。伸びてるね！' : ''})` : '') +
     ` 正解数:${byLv}。問題は毎回ちがうので、10点くらいは上下します。`;
   $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = '間違えた言葉(復習に回しました)';
@@ -1957,7 +1972,7 @@ function kaiwaAnswer(c) {
   } else {
     beep(SND_NG);
     box.className = 'tsukkomi ng';
-    box.innerHTML = '<div class="who">❌ 師範のツッコミ</div>' + esc(c.tk || '') +
+    box.innerHTML = '<div class="who">🌱 師範からひと言</div>' + esc(c.tk || '') +
       `<div style="margin-top:6px">良い返しは:<b>「${esc(t.a)}」</b></div>` +
       (t.why ? `<div class="small" style="margin-top:4px">💡 ${esc(t.why)}</div>` : '');
   }
@@ -1992,8 +2007,8 @@ function kaiwaNext() {
   $('kFeedback').classList.add('hidden');
   $('kPlay').classList.add('hidden');
   $('kScore').textContent = `${kOk} / ${n}`;
-  $('kComment').textContent = kOk === n ? '完璧な会話だ。全問正解ボーナス+10！' :
-    kOk >= n - 1 ? 'いい会話だった。あと一歩。' : '会話は慣れ。良い返しを声に出して覚えろ。';
+  $('kComment').textContent = kOk === n ? '完璧な会話！全問正解ボーナス+10！' :
+    kOk >= n - 1 ? 'いい会話だったね！あと一歩。' : '会話は慣れが大事。良い返しを声に出してみると、どんどん上手になるよ。';
   $('kWords').innerHTML = '<div class="small">📌 この会話で覚えたい言葉</div>' +
     (kCur.w || []).map(([w, m]) => `<div><b>${esc(w)}</b> … ${esc(m)}</div>`).join('');
   $('kEnd').classList.remove('hidden');
@@ -2076,8 +2091,8 @@ function showCourseResult(c, answeredN) {
   $('rLabel').textContent = `${cc.icon} 難関コース「${cc.name}」の結果`;
   $('rScore').textContent = cc.survival ? `${c}問連続` : `${c} / ${answeredN}`;
   $('rComment').textContent = cleared
-    ? (cc.lv === 3 ? '地獄を走り切った。もう誰にも語彙力が少ないなんて言わせるな。' : `合格！${first ? '次のコースが開いた。' : 'さすがだ。'}`)
-    : (cc.survival ? `${c + 1}問目でやられた。地獄は甘くない。最高記録は${st.best}問連続。` : `不合格。合格は${cc.pass}問以上。間違えた言葉は苦手復習に入れておいた。`);
+    ? (cc.lv === 3 ? '地獄を走り切った！本当にすごい。あなたの語彙力は本物だよ。' : `合格！${first ? '次のコースが開いたよ。' : 'さすが！'}`)
+    : (cc.survival ? `${c + 1}問目で惜しくもストップ。ここまで来られただけですごいよ！最高記録は${st.best}問連続。` : `あと少し！合格は${cc.pass}問以上。間違えた言葉は苦手復習に入れておいたよ。`);
   $('rPoint').textContent = `今回 +${roundPoint + bonus}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = '今回出てきた言葉';
   $('rWords').innerHTML = round.slice(0, answeredN).flatMap(q => (q.words || []).map(([w, m]) =>
@@ -2109,7 +2124,7 @@ function showEndlessResult(c) {
   beep(newBest ? SND_UP : SND_NG);
   $('rLabel').textContent = '♾ 連続正解チャレンジの結果';
   $('rScore').textContent = `${c}問連続`;
-  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.bestStreak}問。あと少しだ。`;
+  $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.bestStreak}問。あと少し、いい勝負だったね！`;
   $('rPoint').textContent = `今回 +${roundPoint}ポイント(合計 ${S.point})`;
   const last = round[round.length - 1];
   $('rWordsLabel').textContent = '最後に間違えた問題';
@@ -2123,34 +2138,34 @@ function showEndlessResult(c) {
 // ===== ボス戦 =====
 const BOSSES = [
   { id:'b1', name:'「やばい」魔人', icon:'😈', hp:100, modes:['iikae'], time:0, hurt:25,
-    intro:'やばい、やばい、全部やばい！お前の語彙も、やばいくらい少ないんだろう？',
+    intro:'やばい、やばい、全部やばい！この世を「やばい」だけにしてやる！',
     hit:['ぐぬっ…「やばい」以外の言葉を使うとは…', 'その言葉、効くぅ！', 'やば…じゃなくて、痛い！'],
-    taunt:['ほらな、結局やばいんだよ！', '言葉が出てこないか？やばいな！', 'その程度か。やばいな！'],
+    taunt:['ふはは、今のは惜しかったな！', 'まだまだ「やばい」の天下だ！', '次の言葉で来い！'],
     lose:'ば、ばかな…やばい以外の言葉で倒されるなんて…やば…' },
   { id:'b2', name:'カタカナ大魔王', icon:'🦹', hp:100, modes:['katakana', 'taigi'], time:0, hurt:25,
-    intro:'お前の日本語、エビデンスがないんだよ。まずはコンセンサスを取ってから来な。',
+    intro:'カタカナこそ最強！日本語でサマライズできるかな？',
     hit:['ノー！そのワード、クリティカルだ！', 'ペンディング…できないダメージ…', 'オーマイガー！'],
-    taunt:['フィードバックしてやろう。お前は弱い！', 'リスケして出直しな！', 'アジェンダが甘いんだよ！'],
+    taunt:['ノープロブレム、まだまだいける！', 'ネクストチャンスに期待だ！', 'いいトライだったな！'],
     lose:'マイ…ブランドが…毀損…された…' },
   { id:'b3', name:'誤用の亡霊', icon:'👻', hp:120, modes:['goyou', 'yomi'], time:20, hurt:25,
-    intro:'言い間違いを笑われた者たちの怨念…お前も道連れにしてやる…',
+    intro:'言い間違いの怨念…正しい言葉で、わしを成仏させられるかな…',
     hit:['ぎゃあああ…正しい言葉がしみる…', 'なぜ…なぜ間違えない…', '成仏…しそう…'],
-    taunt:['ひっひっひ…お前も間違えたな…', 'こっちの世界へおいで…', 'その言い間違い、末代まで語り継いでやる…'],
+    taunt:['ひっひっひ…惜しかったのう…', 'まだまだ…成仏できぬ…', '次こそ…正しい言葉を…'],
     lose:'正しい言葉…あたたかい…やっと…成仏…できる…' },
   { id:'b4', name:'敬語の鬼', icon:'👹', hp:120, modes:['keigo', 'anaume'], time:20, hurt:25,
     intro:'「了解っす」で済ませる者は、この門を通さぬ。',
     hit:['ぬうっ…見事な言葉づかい…', 'その丁寧さ、身にしみる…', '社会人の鑑か…！'],
-    taunt:['取引先なら今ので終わりだ！', '出直してまいれ！', 'それで頭を下げたつもりか！'],
+    taunt:['むう、あと一歩であった！', 'その意気やよし、もう一度！', '心意気は伝わったぞ！'],
     lose:'…お見それいたしました。どうぞ、お通りください。' },
   { id:'b5', name:'慣用句仙人', icon:'🧙', hp:140, modes:['anaume', 'tatoe', 'imi'], time:15, hurt:30,
     intro:'ふぉっふぉっ。言葉の引き出しは、年季が違うぞい。',
     hit:['ほう、やりおる…', '舌を巻いたわい…', '目から鱗じゃ…'],
-    taunt:['青二才め、ふぉっふぉっ', '百年早いわい', '出直してくるがよい'],
+    taunt:['ふぉっふぉっ、惜しいのう', '筋はいいぞい', '次はどうかの？'],
     lose:'あっぱれじゃ…わしの引き出しを、全部持っていくがよい…' },
   { id:'b6', name:'言葉の神', icon:'🐉', hp:200, modes:null, time:15, hurt:34, final:true,
-    intro:'よくぞここまで来た、人の子よ。だが、我が言葉の前にひれ伏すがよい。',
+    intro:'よくぞここまで来た、人の子よ。その言葉の力、見せてもらおう。',
     hit:['ほう…人の子にしては、やる…', 'その語彙…どこで磨いた…', '我が鱗に…傷を…'],
-    taunt:['ひれ伏せ！', 'その程度の語彙で、神に挑むか！', '言葉は、そう甘くない'],
+    taunt:['惜しいな、人の子よ', 'まだ終わりではないぞ', 'その挑戦、見事である'],
     lose:'見事だ…お前の言葉は、もう誰よりも強い。語彙の神の座を、お前に譲ろう…' },
 ];
 function bossModes(b) { return (b.modes || HARD_MODES).filter(m => D[m].length); }
@@ -2285,10 +2300,10 @@ function bossEnd(win) {
   if (win) { bossSay(b.lose); beep(SND_UP); }
   else { bossSay(rand(b.taunt)); beep(SND_NG); }
   $('bArena').classList.add('hidden');
-  $('bEndTitle').textContent = win ? (b.final ? '🐉 ラスボス撃破！' : '🏆 勝利！') : '💀 敗北…';
+  $('bEndTitle').textContent = win ? (b.final ? '🐉 ラスボス撃破！' : '🏆 勝利！') : '😤 あと一歩…';
   $('bEndText').textContent = win
     ? `${b.name}を倒した。正解${B.ok}問・ミス${B.ng}問。${bonus ? '初撃破ボーナス+' + bonus + 'pt。' : ''}${b.final ? 'すべてのボスを倒した。あなたが新しい言葉の神だ。' : (BOSSES[B.i + 1] ? '次のボスが現れた…' : '')}`
-    : `あと${Math.max(0, B.hp)}で倒せた。間違えた言葉は苦手復習に入れておいた。修行して出直せ。`;
+    : `あと${Math.max(0, B.hp)}で倒せた！惜しい。間違えた言葉は苦手復習に入れておいたから、また挑もう。`;
   $('bEnd').classList.remove('hidden');
 }
 
@@ -2376,7 +2391,8 @@ function reibunSaid() {
 }
 function usedWord(k) {
   const w = bookShown[k], e = w && S.words[w];
-  if (!e) return;
+  if (!e || e.usedDay === today()) return;
+  e.usedDay = today();
   e.used = (e.used || 0) + 1; S.cnt.usedWord++;
   addPoint(5); markPracticed(); save(); checkBadges();
   toast('🗣「' + w + '」を実戦で使った！+5pt');
@@ -2400,7 +2416,9 @@ function renderBook() {
     const pill = e.ng > e.ok ? '<span class="pill weak">苦手</span>' : (e.ok >= 2 ? '<span class="pill good">身についた</span>' : '');
     const mine = (e.mine || []).map(t => `<div class="mine">✍ ${esc(t)}</div>`).join('');
     return `<div class="book-item"><b>${esc(w)}</b>${pill}<div class="m">${esc(e.m)}</div>${e.ex ? `<div class="small">例:${esc(e.ex)}</div>` : ''}${mine}` +
-      `<button class="usebtn" onclick="usedWord(${k})">🗣 会話で使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`;
+      (e.usedDay === today()
+        ? `<button class="usebtn" disabled>✔ 今日使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`
+        : `<button class="usebtn" onclick="usedWord(${k})">🗣 会話で使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`);
   }).join('');
 }
 
@@ -2495,6 +2513,19 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ===== スマホで電波なしでも動くようにする(ネット上で開いた時だけ) =====
+// ブラウザに「この記録は消さないで」と頼む(Safariの7日で消える仕組み対策)
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+(function () {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (ios && !standalone && location.protocol.startsWith('http')) {
+    const n = document.createElement('div');
+    n.className = 'offline-note';
+    n.style.background = '#fff3e0'; n.style.padding = '8px'; n.style.borderRadius = '10px';
+    n.textContent = '📌 Safariのまま使うと、しばらく開かない日が続いた時に記録が消えることがあります。下の「共有」ボタン→「ホーム画面に追加」で入れて、そこから開いてください。';
+    const home = document.getElementById('home'); if (home) home.insertBefore(n, home.children[1] || null);
+  }
+})();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   const hadSW = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
