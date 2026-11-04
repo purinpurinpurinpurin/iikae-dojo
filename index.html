@@ -59,6 +59,10 @@
   .bar i { display: block; height: 100%; background: var(--main); transition: width .3s; }
   .cat { display: inline-block; font-size: 13px; background: var(--main-soft); color: var(--main); padding: 2px 10px; border-radius: 20px; }
   .scene { color: var(--sub); margin: 8px 0; }
+  .passage { white-space: pre-wrap; text-align: left; background: #fffdf7; border: 2px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin: 8px 0 12px; font-size: 17px; line-height: 1.85; font-weight: normal; }
+  .passage .pt { display: block; font-weight: bold; color: var(--sub); font-size: 14px; margin-bottom: 4px; }
+  .dk-q { font-size: 19px; font-weight: bold; text-align: left; }
   .prompt { font-size: 22px; font-weight: bold; margin: 6px 0 4px; }
   .prompt mark { background: #ffe082; padding: 0 3px; border-radius: 4px; }
   .prompt .blank { color: var(--main); border-bottom: 3px solid var(--main); padding: 0 6px; }
@@ -607,6 +611,8 @@
 <script src="data/sango_more2.js"></script>
 <script src="data/kaiwa6.js"></script>
 <script src="data/ruigo.js"></script>
+<script src="data/dokkai.js"></script>
+<script src="data/dokkai2.js"></script>
 <script src="data/ruigo_more.js"></script>
 <script src="data/kaiwa7.js"></script>
 <script src="data/kaiwa8.js"></script>
@@ -628,6 +634,10 @@ const D = {
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || [], window.TSUKKOMI_MORE2 || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || [], window.SANGO_MORE2 || []),
   kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || [], window.KAIWA6 || [], window.KAIWA7 || [], window.KAIWA8 || []),
+  dk_kiji:     [].concat(window.DOKKAI_KIJI || [], window.DOKKAI_KIJI2 || []),
+  dk_oshirase: [].concat(window.DOKKAI_OSHIRASE || [], window.DOKKAI_OSHIRASE2 || []),
+  dk_honne:    [].concat(window.DOKKAI_HONNE || [], window.DOKKAI_HONNE2 || []),
+  dk_tsunagi:  [].concat(window.DOKKAI_TSUNAGI || [], window.DOKKAI_TSUNAGI2 || []),
   ruigo:    [].concat(window.RUIGO || [], window.RUIGO_MORE || []),
   h_imi:    [].concat(window.HARD_IMI || [], window.HARD_IMI2 || []),
   h_yomi:   [].concat(window.HARD_YOMI || [], window.HARD_YOMI2 || []),
@@ -635,6 +645,8 @@ const D = {
   h_iikae:  [].concat(window.HARD_IIKAE || [], window.HARD_IIKAE2 || []),
 };
 const HARD_MODES = ['h_imi', 'h_yomi', 'h_koji', 'h_iikae'];
+const DOKKAI_MODES = ['dk_kiji', 'dk_oshirase', 'dk_honne', 'dk_tsunagi'];
+const DK_CAT = { dk_kiji:'📰 記事の要点', dk_oshirase:'📋 お知らせ・書類', dk_honne:'💬 本当の意味', dk_tsunagi:'🔗 つなぎ言葉' };
 const CHOICE_MODES = ['iikae', 'imi', 'yomi', 'katakana', 'taigi', 'anaume', 'goyou', 'keigo', 'tatoe'];
 
 // 問題ごとの見分け用の名前(問題を足したり消したりしても成績がずれないように、中身から作る)
@@ -645,6 +657,7 @@ function keyOf(mode, q) {
     case 'taigi': case 'goyou': return mode + ':' + q.q;
     case 'anaume': return mode + ':' + q.s;
     case 'narabe': return mode + ':' + q.t;
+    case 'dk_kiji': case 'dk_oshirase': case 'dk_honne': case 'dk_tsunagi': return mode + ':' + q.t + '|' + q.q + '|' + String(q.text || '').slice(0, 30);
   }
   return mode + ':?';
 }
@@ -668,12 +681,16 @@ const MODES = [
   { id:'ruigo',    g:2, icon:'🏃', name:'類語マラソン', desc:'60秒で言い換えを何個言えるか勝負', start:() => startRuigo() },
   { id:'reibun',   g:2, icon:'✍', name:'例文づくり', desc:'覚えた言葉で自分の例文を作る', start:() => startReibun() },
   { id:'sango',    g:2, icon:'🎙', name:'3語スピーチ',    desc:'指定の3語を使って30秒しゃべる', start:() => startFree('sango') },
+  { id:'dk_kiji',     g:4, icon:'📰', name:'記事の要点',     desc:'短い記事を読んで、言いたいことをつかむ', start:() => startChoice('dk_kiji') },
+  { id:'dk_oshirase', g:4, icon:'📋', name:'お知らせ・書類', desc:'締め切り・持ち物・条件を読み落とさない', start:() => startChoice('dk_oshirase') },
+  { id:'dk_honne',    g:4, icon:'💬', name:'本当の意味',     desc:'LINEや会話の遠回しな言い方を読み解く', start:() => startChoice('dk_honne') },
+  { id:'dk_tsunagi',  g:4, icon:'🔗', name:'つなぎ言葉',     desc:'「しかし」「つまり」で文の流れを追う', start:() => startChoice('dk_tsunagi') },
   { id:'course',   g:3, icon:'🔥', name:'難関コース',     desc:'上級・超上級・地獄の3段階', start:() => showCourse() },
   { id:'boss',     g:3, icon:'⚔', name:'ボス戦',         desc:'6体のボスを言葉で倒せ', start:() => showBossMap() },
   { id:'endless',  g:3, icon:'♾', name:'連続正解チャレンジ', desc:'間違えるまで続ける', start:() => startEndless() },
   { id:'time',     g:3, icon:'⏱', name:'60秒タイムアタック', desc:'説明なしで何問とけるか勝負', start:() => startTime() },
 ];
-const GROUPS = ['📘 言葉を増やす', '🛠 使いこなす', '🗣 話す練習', '🏆 腕だめし・挑戦'];
+const GROUPS = ['📘 言葉を増やす', '🛠 使いこなす', '🗣 話す練習', '🏆 腕だめし・挑戦', '📖 読解'];
 const MODE_NAME = {}; MODES.forEach(m => MODE_NAME[m.id] = m.icon + ' ' + m.name);
 Object.assign(MODE_NAME, { h_imi:'🔥 難関・意味', h_yomi:'🔥 難関・読み', h_koji:'🔥 難関・故事成語', h_iikae:'🔥 難関・言い換え' });
 function modeCount(id) {
@@ -695,6 +712,14 @@ const OK_LINES = [
   'すごい！知ってるだけじゃなく、口に出せたらもう完璧。',
   '正解！その言葉、今週どこかで使ってみるともっと身につくよ。',
   'さすが！だんだん言葉選びが上手になってきたね。',
+];
+const DK_OK_LINES = [
+  '正解！ちゃんと文章の手がかりを拾えてるね。',
+  'お見事！読み落としなし。',
+  '正解！書いてあることと、書いていないことを見分けられてるよ。',
+  'すごい！大事なところをしっかりつかめてるね。',
+  '正解！その読み方なら、お知らせもニュースも怖くないよ。',
+  'さすが！言葉の裏までちゃんと読めてるね。',
 ];
 const FREE_TSUKKOMI = [
   '言えただけで上出来！「やばい」1個で済ませるより、ずっと伝わるよ。',
@@ -769,6 +794,8 @@ const BADGES = [
   ['master200','🏔', '定着200語',      '間隔をあけた復習で200問が定着', s => masteredCount(s) >= 200],
   ['reibun20', '✍', '例文職人',       '自分の例文を20個作った',       s => s.cnt.reibun >= 20],
   ['useword10','🗣', '実戦の鬼',       '言葉帳の言葉を会話で10回使った', s => s.cnt.usedWord >= 10],
+  ['dokkai30', '📖', '読み解き上手',   '読解の問題を30問解いた',       s => s.cnt.dokkai >= 30],
+  ['dokkai100','🔎', '読解の達人',     '読解の問題を100問解いた',      s => s.cnt.dokkai >= 100],
   ['ruigo10',  '🏃', '類語ランナー',   '類語マラソンを10回走った',     s => s.cnt.ruigo >= 10],
   ['ruigo15',  '🏅', '言葉の泉',       '類語マラソン1回で15個言えた',  s => s.ruigoBest >= 15],
   ['allmodes', '🌈', '全種目制覇',     'すべての遊び方を1回以上遊んだ', s => MODES.every(m => !modeCount(m.id) || s.played[m.id])],
@@ -780,7 +807,7 @@ function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
     days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
     daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[], ruigo:{}, ruigoBest:0,
-    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0, ruigo:0 } };
+    cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0, ruigo:0, dokkai:0 } };
 }
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 // 読み込んだ記録の形を整える(おかしな所は空に戻す)。壊れていたら例外を出す
@@ -1037,6 +1064,11 @@ function makeQ(mode, i) {
 function makeQBase(mode, i) {
   const q = D[mode][i];
   const base = { id: IDS[mode][i], mode, scene:'', exp:'' };
+  if (DK_CAT[mode]) {
+    return Object.assign(base, { cat: DK_CAT[mode],
+      prompt: `<div class="passage"><span class="pt">${esc(q.t || '')}</span>${esc(q.text || '')}</div><div class="dk-q">${esc(q.q || '')}</div>`,
+      ask: '', choices: choicesOf(q), answer: q.a, speak: '', words: q.w || [], exp: q.why ? '読むコツ:' + q.why : '' });
+  }
   switch (BASE_MODE[mode] || mode) {
     case 'iikae': case 'keigo': case 'tatoe':
       return Object.assign(base, { cat: (mode === 'tatoe' ? 'たとえ上手「' : '「') + q.c + '」', scene: q.s, prompt: highlight(q.l, q.k),
@@ -1183,11 +1215,12 @@ function answer(btn, c) {
   const exp = current.exp ? '<div class="small" style="margin-top:6px">💡 ' + esc(current.exp) + '</div>' : '';
   record(current.id, ok);
   if (roundKind === 'shindan') sdOk[qi] = ok;
+  if (DK_CAT[current.mode]) { S.cnt.dokkai = (S.cnt.dokkai || 0) + 1; dailyInc('dokkai'); }
   if (ok) {
     const gain = roundKind === 'course' ? courseCur.pts : roundKind === 'endless' ? 3 : 10;
     roundCorrect++; roundPoint += gain; addPoint(gain); beep(SND_OK);
     box.className = 'tsukkomi ok';
-    box.innerHTML = '<div class="who">⭕ 正解 +' + gain + 'pt</div>' + esc(rand(OK_LINES)) + exp;
+    box.innerHTML = '<div class="who">⭕ 正解 +' + gain + 'pt</div>' + esc(rand(DK_CAT[current.mode] ? DK_OK_LINES : OK_LINES)) + exp;
   } else {
     beep(SND_NG);
     if (btn) btn.classList.add('wrong');
@@ -1619,6 +1652,7 @@ const MISSION_POOL = [
   ['voice',  '声出し練習(自由・ツッコミ・3語)を{n}回', [3]],
   ['review', '苦手復習で{n}問答える',           [5]],
   ['srs',    '「今日の復習」で{n}問答える',     [5]],
+  ['dokkai', '読解の問題を{n}問解く',           [3, 5]],
 ];
 function genMissions() {
   const d = new Date();
@@ -2348,7 +2382,7 @@ let ID_INDEX = null;
 function idIndex() {
   if (!ID_INDEX) {
     ID_INDEX = {};
-    CHOICE_MODES.concat(HARD_MODES).forEach(m => IDS[m].forEach((id, i) => { ID_INDEX[id] = { m, i }; }));
+    CHOICE_MODES.concat(HARD_MODES, DOKKAI_MODES).forEach(m => IDS[m].forEach((id, i) => { ID_INDEX[id] = { m, i }; }));
   }
   return ID_INDEX;
 }
