@@ -1561,10 +1561,43 @@ function listenFree() {
 // ===== 読み上げ(スマホの中の声を使うので、電波なしでも動く) =====
 const TTS_OK = 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined';
 function stopSpeak() { if (TTS_OK) try { speechSynthesis.cancel(); } catch (e) {} }
+// ===== 読み上げの読み間違い対策 =====
+// 機械の声は難しい漢字を読み間違えるので、問題データにある「言葉と読み」で、ひらがなに置きかえてから読ませる。
+// 「鑑みる(かんがみる)」は送りがなの前で切り、「鑑み→かんがみ」として「鑑みて」「鑑みれば」にも効かせる。
+let YOMI_RE = null, YOMI_MAP = null;
+function buildYomiMap() {
+  YOMI_MAP = {};
+  const add = (w, y) => {
+    if (!w || !y) return;
+    w = String(w).replace(/[〜~（(].*$/, '').trim(); y = String(y).replace(/[\s　]/g, '').replace(/[〜~（(].*$/, '');
+    if (!/[一-鿿々]/.test(w) || !/^[ぁ-んー]+$/.test(y)) return;
+    // 後ろの同じかなを取って、漢字の部分と読みの部分を取り出す
+    let i = w.length, j = y.length;
+    while (i > 0 && j > 0 && w[i - 1] === y[j - 1] && /[ぁ-ん]/.test(w[i - 1])) { i--; j--; }
+    let key = w.slice(0, i), val = y.slice(0, j);
+    // 「矢面に立つ」→「矢面に立った」のように形が変わっても効くよう、送りがなの前までの形も登録(2文字以上で漢字で終わる時だけ)
+    if (i < w.length && key.length >= 2 && /[一-鿿々]$/.test(key) && val && !(key in YOMI_MAP)) YOMI_MAP[key] = val;
+    if (i < w.length) { key += w[i]; val += w[i]; }   // 送りがなの1文字目までを目印にする
+    if (key.length < 2 || !val) return;
+    if (!(key in YOMI_MAP)) YOMI_MAP[key] = val;
+  };
+  const each = (m, f) => (D[m] || []).forEach(f);
+  ['imi', 'h_imi', 'h_koji'].forEach(m => each(m, q => add(q.w, q.y)));
+  ['yomi', 'h_yomi'].forEach(m => each(m, q => add(q.w, q.a)));
+  each('taigi', q => add(q.q, q.y));
+  const keys = Object.keys(YOMI_MAP).sort((a, b) => b.length - a.length)
+    .map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  YOMI_RE = keys.length ? new RegExp(keys.join('|'), 'g') : null;
+}
+function toSpeech(t) {
+  t = String(t).replace(/[「」『』]/g, '');
+  if (!YOMI_MAP) buildYomiMap();
+  return YOMI_RE ? t.replace(YOMI_RE, k => YOMI_MAP[k] || k) : t;
+}
 function speakText(t) {
   if (!TTS_OK || !t) return;
   stopSpeak();
-  const u = new SpeechSynthesisUtterance(String(t).replace(/[「」]/g, ''));
+  const u = new SpeechSynthesisUtterance(toSpeech(t));
   u.lang = 'ja-JP'; u.rate = 0.95;
   const v = speechSynthesis.getVoices().find(v => /ja[-_]JP/i.test(v.lang));
   if (v) u.voice = v;
