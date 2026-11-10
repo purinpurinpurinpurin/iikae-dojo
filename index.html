@@ -59,6 +59,17 @@
   .bar i { display: block; height: 100%; background: var(--main); transition: width .3s; }
   .cat { display: inline-block; font-size: 13px; background: var(--main-soft); color: var(--main); padding: 2px 10px; border-radius: 20px; }
   .scene { color: var(--sub); margin: 8px 0; }
+  .adv-bar { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 8px 0 4px; }
+  .adv-bar i { display: block; height: 100%; background: var(--main); border-radius: 5px; }
+  .adv-area { border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; margin: 10px 0; background: var(--card); }
+  .adv-area.locked { opacity: .45; }
+  .adv-area h3 { margin: 0 0 6px; font-size: 17px; }
+  .adv-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .adv-sq { aspect-ratio: 1; border-radius: 10px; background: #f1ece3; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .adv-sq.done { background: var(--ok-soft); }
+  .adv-sq.now { background: var(--main-soft); outline: 3px solid var(--main); }
+  .growth-cap { min-height: 1.4em; font-size: 14px; color: var(--sub); margin-top: 2px; }
+  .growth svg { width: 100%; height: auto; display: block; }
   .passage { white-space: pre-wrap; text-align: left; background: #fffdf7; border: 2px solid var(--line); border-radius: 12px;
     padding: 12px 14px; margin: 8px 0 12px; font-size: 17px; line-height: 1.85; font-weight: normal; }
   .passage .pt { display: block; font-weight: bold; color: var(--sub); font-size: 14px; margin-bottom: 4px; }
@@ -228,6 +239,15 @@
         <button class="icon-btn" id="srsBtn" onclick="startSrs()">復習する</button>
       </div>
       <div class="small" id="srsInfo"></div>
+    </div>
+
+    <div class="card" id="advCard">
+      <div class="rank-row">
+        <div><div class="small">🗺 冒険マップ(1日5問で1マス進む)</div><div class="rank-big" id="advNow"></div></div>
+        <button class="icon-btn" onclick="showAdv()">地図を見る</button>
+      </div>
+      <div class="adv-bar"><i id="advBar"></i></div>
+      <div class="small" id="advInfo"></div>
     </div>
 
     <button class="big" onclick="startMix()">🎲 ごちゃまぜ(迷ったらこれ)</button>
@@ -459,6 +479,15 @@
     <button class="ghost" onclick="goHome()">ホームに戻る</button>
   </section>
 
+  <!-- ===== 冒険マップ ===== -->
+  <section id="adv" class="hidden">
+    <h2>🗺 冒険マップ</h2>
+    <div class="small">練習した日に1マス進みます(その日に5問答えるか、5回声に出したら1マス)。10マスごとに新しい土地へ。</div>
+    <div class="card"><div id="advSummary"></div></div>
+    <div id="advMap"></div>
+    <button class="ghost" onclick="goHome()">ホームに戻る</button>
+  </section>
+
   <!-- ===== 類語マラソン ===== -->
   <section id="ruigo" class="hidden">
     <div class="card">
@@ -514,6 +543,10 @@
       <div class="small">練習した日(最近5週間。色が濃いほどたくさん練習)</div>
       <div class="cal" id="calendar"></div>
       <div class="small" id="recSummary"></div>
+    </div>
+    <div class="card growth">
+      <div class="small">📈 成長グラフ(棒を押すと数字が出ます)</div>
+      <div id="growthCharts"></div>
     </div>
     <div class="card">
       <div class="small">🩺 語彙力診断の記録(100点満点)</div>
@@ -613,6 +646,9 @@
 <script src="data/ruigo.js"></script>
 <script src="data/dokkai.js"></script>
 <script src="data/dokkai2.js"></script>
+<script src="data/dokkai3.js"></script>
+<script src="data/imi_more3.js"></script>
+<script src="data/yomi_more2.js"></script>
 <script src="data/ruigo_more.js"></script>
 <script src="data/kaiwa7.js"></script>
 <script src="data/kaiwa8.js"></script>
@@ -622,8 +658,8 @@
 const D = {
   iikae:    [].concat(window.QUESTIONS || [], window.IIKAE_MORE || [], window.IIKAE_MORE2 || [], window.IIKAE_MORE3 || []),
   keigo:    [].concat(window.KEIGO || [], window.KEIGO_MORE || [], window.KEIGO_MORE2 || []),
-  imi:      [].concat(window.IMI || [], window.IMI_MORE || [], window.IMI_MORE2 || []),
-  yomi:     [].concat(window.YOMI || [], window.YOMI_MORE || []),
+  imi:      [].concat(window.IMI || [], window.IMI_MORE || [], window.IMI_MORE2 || [], window.IMI_MORE3 || []),
+  yomi:     [].concat(window.YOMI || [], window.YOMI_MORE || [], window.YOMI_MORE2 || []),
   katakana: [].concat(window.KATAKANA || [], window.KATAKANA_MORE || []),
   taigi:    [].concat(window.TAIGI || [], window.TAIGI_MORE || []),
   anaume:   [].concat(window.ANAUME || [], window.ANAUME_MORE || [], window.ANAUME_MORE2 || []),
@@ -634,10 +670,10 @@ const D = {
   tsukkomi: [].concat(window.TSUKKOMI || [], window.TSUKKOMI_MORE || [], window.TSUKKOMI_MORE2 || []),
   sango:    [].concat(window.SANGO || [], window.SANGO_MORE || [], window.SANGO_MORE2 || []),
   kaiwa:    [].concat(window.KAIWA1 || [], window.KAIWA2 || [], window.KAIWA3 || [], window.KAIWA4 || [], window.KAIWA5 || [], window.KAIWA6 || [], window.KAIWA7 || [], window.KAIWA8 || []),
-  dk_kiji:     [].concat(window.DOKKAI_KIJI || [], window.DOKKAI_KIJI2 || []),
-  dk_oshirase: [].concat(window.DOKKAI_OSHIRASE || [], window.DOKKAI_OSHIRASE2 || []),
-  dk_honne:    [].concat(window.DOKKAI_HONNE || [], window.DOKKAI_HONNE2 || []),
-  dk_tsunagi:  [].concat(window.DOKKAI_TSUNAGI || [], window.DOKKAI_TSUNAGI2 || []),
+  dk_kiji:     [].concat(window.DOKKAI_KIJI || [], window.DOKKAI_KIJI2 || [], window.DOKKAI_KIJI3 || []),
+  dk_oshirase: [].concat(window.DOKKAI_OSHIRASE || [], window.DOKKAI_OSHIRASE2 || [], window.DOKKAI_OSHIRASE3 || []),
+  dk_honne:    [].concat(window.DOKKAI_HONNE || [], window.DOKKAI_HONNE2 || [], window.DOKKAI_HONNE3 || []),
+  dk_tsunagi:  [].concat(window.DOKKAI_TSUNAGI || [], window.DOKKAI_TSUNAGI2 || [], window.DOKKAI_TSUNAGI3 || []),
   ruigo:    [].concat(window.RUIGO || [], window.RUIGO_MORE || []),
   h_imi:    [].concat(window.HARD_IMI || [], window.HARD_IMI2 || []),
   h_yomi:   [].concat(window.HARD_YOMI || [], window.HARD_YOMI2 || []),
@@ -794,6 +830,9 @@ const BADGES = [
   ['master200','🏔', '定着200語',      '間隔をあけた復習で200問が定着', s => masteredCount(s) >= 200],
   ['reibun20', '✍', '例文職人',       '自分の例文を20個作った',       s => s.cnt.reibun >= 20],
   ['useword10','🗣', '実戦の鬼',       '言葉帳の言葉を会話で10回使った', s => s.cnt.usedWord >= 10],
+  ['adv10',    '🌱', '草原を抜けた',   '冒険マップで最初の土地をクリア', s => (s.adv || {}).pos >= 10],
+  ['adv50',    '⛰', '半分まで来た',   '冒険マップで50マス進んだ',     s => (s.adv || {}).pos >= 50],
+  ['adv100',   '🐉', '神殿に到着',     '冒険マップを100マス踏破',      s => (s.adv || {}).pos >= 100],
   ['dokkai30', '📖', '読み解き上手',   '読解の問題を30問解いた',       s => s.cnt.dokkai >= 30],
   ['dokkai100','🔎', '読解の達人',     '読解の問題を100問解いた',      s => s.cnt.dokkai >= 100],
   ['ruigo10',  '🏃', '類語ランナー',   '類語マラソンを10回走った',     s => s.cnt.ruigo >= 10],
@@ -806,7 +845,7 @@ const KEY = 'iikae_dojo_v1';
 function blank() {
   return { point:0, streak:0, maxStreak:0, lastDay:'', stats:{}, words:{}, best:0, usedDay:'',
     days:{}, badges:{}, played:{}, settings:{ n:5, sound:true }, rank:0, kplayed:{}, course:{}, boss:{}, bestStreak:0,
-    daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[], ruigo:{}, ruigoBest:0,
+    daily:{ day:'', c:{}, done:{}, list:[], all:false }, shindan:[], ruigo:{}, ruigoBest:0, adv:{ pos:0, lastDay:'' }, hist:{},
     cnt:{ answered:0, said:0, perfect:0, tsukkomi:0, sango:0, free:0, weakFixed:0, used:0, kaiwa:0, missionDays:0, exams:0, reibun:0, usedWord:0, srs:0, ruigo:0, dokkai:0 } };
 }
 const isObj = v => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -833,6 +872,11 @@ function normalize(raw) {
   s.daily.list = s.daily.list.filter(isObj);
   if (![5, 10, 20].includes(Number(s.settings.n))) s.settings.n = 5; else s.settings.n = Number(s.settings.n);
   if (!Array.isArray(s.shindan)) s.shindan = [];
+  if (!isObj(s.adv)) s.adv = { pos:0, lastDay:'' };
+  s.adv.pos = Math.max(0, Math.floor(Number(s.adv.pos) || 0));
+  if (typeof s.adv.lastDay !== 'string') s.adv.lastDay = '';
+  if (!isObj(s.hist)) s.hist = {};
+  for (const k of Object.keys(s.hist)) if (!isObj(s.hist[k])) delete s.hist[k];
   s.shindan = s.shindan.filter(x => isObj(x) && isFinite(Number(x.s)) && typeof x.d === 'string');
   return migrate(s);
 }
@@ -876,6 +920,7 @@ function yesterday() { const y = new Date(); y.setDate(y.getDate() - 1); return 
 function markPracticed() {
   const t = today();
   S.days[t] = (S.days[t] || 0) + 1;
+  advCheck();
   if (S.lastDay !== t) {
     S.streak = (S.lastDay === yesterday()) ? S.streak + 1 : 1;
     S.lastDay = t;
@@ -893,7 +938,7 @@ const $ = id => document.getElementById(id);
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
 function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
-const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun','jiten','ruigo'];
+const SCREENS = ['home','quiz','narabe','time','result','free','book','record','settings','kaiwa','course','bossmap','boss','reibun','jiten','ruigo','adv'];
 function show(id) {
   SCREENS.forEach(s => $(s).classList.toggle('hidden', s !== id));
   window.scrollTo(0, 0);
@@ -974,12 +1019,15 @@ function record(id, ok) {
   S.stats[id] = st;
   S.cnt.answered++;
   dailyInc('ans');
+  const h = histToday(); h.a = (h.a || 0) + 1; if (ok) h.o = (h.o || 0) + 1;
+  advCheck();
   if (ok) dailyInc('ok');
   if (roundKind === 'review' && id.split(':')[0] !== 'kaiwa') dailyInc('review');
 }
 
 // ===== ホーム =====
 function renderHome() {
+  renderAdvCard();
   const sdl = S.shindan[S.shindan.length - 1];
   $('sdLast').textContent = sdl ? `(前回 ${sdl.s}点)` : '';
   const now = titleOf(S.point);
@@ -1753,6 +1801,133 @@ function showExamResult(c, n) {
   show('result');
 }
 
+// ===== 冒険マップ =====
+// 練習した日に1マス進む(その日に「答えた数+声に出した数」が5に届いた時)。10マスで1つの土地。
+const ADV_AREAS = [
+  ['🌱', 'ことばの草原', '最初の一歩。ここから旅が始まる'],
+  ['🌲', 'ささやきの森', '木々が言い換えをささやく森'],
+  ['🏞', 'ことわざの川', '昔の人の知恵が流れる川'],
+  ['🏘', '敬語の町', 'ていねいな言葉が飛びかう町'],
+  ['⛰', '四字熟語の山', '四文字の石が積み上がった山'],
+  ['🏜', 'カタカナ砂漠', 'カタカナ語の砂が舞う砂漠'],
+  ['🌋', '誤用の火山', '言い間違いがふき出す火山'],
+  ['🏯', '故事成語の城', '昔話の英雄が守る城'],
+  ['☁', '雲の上の書庫', 'あらゆる言葉が眠る書庫'],
+  ['🐉', '言葉の神殿', '旅のゴール。言葉の神が待つ'],
+];
+const ADV_NEED = 5, ADV_TOTAL = ADV_AREAS.length * 10;
+function advToday() { ensureDaily(); const c = S.daily.c; return (c.ans || 0) + (c.said || 0); }
+function advCheck() {
+  if (!S.adv || S.adv.lastDay === today() || advToday() < ADV_NEED) return;
+  S.adv.lastDay = today();
+  S.adv.pos++;
+  const p = S.adv.pos, lap = Math.floor((p - 1) / ADV_TOTAL), inLap = ((p - 1) % ADV_TOTAL) + 1;
+  const area = ADV_AREAS[Math.floor((inLap - 1) / 10)];
+  let bonus = 5, msg = `🗺 1マス進んだ！(${area[1]} ${((inLap - 1) % 10) + 1}/10)`;
+  if (inLap % 10 === 0) {
+    bonus = 50;
+    const next = ADV_AREAS[(inLap / 10) % ADV_AREAS.length];
+    msg = inLap === ADV_TOTAL ? `🐉 言葉の神殿に到着！${lap + 1}周目を踏破した！+50pt`
+                              : `🏁 ${area[1]}をクリア！次は${next[0]}${next[1]}へ +50pt`;
+    beep(SND_UP);
+  } else if (inLap % 5 === 0) { bonus = 20; msg = `💎 宝箱を見つけた！+20pt(${area[1]})`; }
+  addPoint(bonus);
+  setTimeout(() => toast(msg), 600);
+  save(); checkBadges();
+}
+function advState() {
+  const p = S.adv.pos, lap = Math.floor(p / ADV_TOTAL), inLap = p % ADV_TOTAL;
+  const ai = Math.min(Math.floor(inLap / 10), ADV_AREAS.length - 1);
+  return { p, lap, inLap, ai, step: inLap % 10 };
+}
+function renderAdvCard() {
+  if (!$('advCard')) return;
+  const st = advState(), a = ADV_AREAS[st.ai];
+  $('advNow').textContent = `${a[0]} ${a[1]} ${st.step}/10`;
+  $('advBar').style.width = (st.step * 10) + '%';
+  const done = S.adv.lastDay === today(), left = Math.max(0, ADV_NEED - advToday());
+  $('advInfo').textContent = done ? '✔ 今日の1マスは進んだ。また明日！'
+    : `今日はあと${left}問(か声出し${left}回)で1マス進む` + (st.lap ? `(${st.lap + 1}周目)` : '');
+}
+function showAdv() {
+  const st = advState();
+  $('advSummary').innerHTML = `<b>${esc(ADV_AREAS[st.ai][0] + ' ' + ADV_AREAS[st.ai][1])}</b>(${st.step}/10マス)` +
+    `<div class="small">${esc(ADV_AREAS[st.ai][2])}。これまでに合計${st.p}マス進んだ${st.lap ? `・${st.lap + 1}周目` : ''}。</div>`;
+  $('advMap').innerHTML = ADV_AREAS.map((a, i) => {
+    const locked = i > st.ai, cleared = i < st.ai;
+    let cells = '';
+    for (let k = 0; k < 10; k++) {
+      const n = i * 10 + k + 1;                      // この土地の何マス目か(1から)
+      const done = n <= st.inLap, now = n === st.inLap + 1 && i === st.ai;
+      const icon = (k === 9) ? '🏁' : (k === 4) ? '💎' : done ? '✔' : '';
+      cells += `<div class="adv-sq${done ? ' done' : ''}${now ? ' now' : ''}">${now ? '🚶' : icon}</div>`;
+    }
+    return `<div class="adv-area${locked ? ' locked' : ''}"><h3>${a[0]} ${esc(a[1])} ${cleared ? '✅' : locked ? '🔒' : ''}</h3>` +
+      `<div class="small" style="margin-bottom:6px">${esc(locked ? 'まだ見ぬ土地' : a[2])}</div><div class="adv-row">${cells}</div></div>`;
+  }).join('');
+  show('adv');
+}
+
+// ===== 成長グラフ =====
+// 1日ごとの記録(答えた数・正解数・定着した問題・ポイント)を残す。古いものは120日分まで。
+function histToday() {
+  const t = today();
+  if (!S.hist[t]) {
+    S.hist[t] = {};
+    const keys = Object.keys(S.hist);
+    if (keys.length > 120) keys.sort((x, y) => dayKeyNum(x) - dayKeyNum(y)).slice(0, keys.length - 120).forEach(k => delete S.hist[k]);
+  }
+  const h = S.hist[t];
+  h.m = masteredCount(S); h.p = S.point;
+  return h;
+}
+function dayKeyNum(k) { const [y, m, d] = k.split('-').map(Number); return y * 10000 + m * 100 + d; }
+function lastDays(n) {
+  const out = [], d = new Date();
+  for (let i = n - 1; i >= 0; i--) { const x = new Date(d); x.setDate(d.getDate() - i); out.push(x); }
+  return out;
+}
+// 1本の系列を棒で描く(色は1色・押すと数字)
+function barChart(title, items, unit, maxFixed) {
+  const W = 320, H = 130, L = 30, B = 22, T = 10, n = items.length;
+  const max = maxFixed || Math.max(1, ...items.map(x => x.v || 0));
+  const bw = (W - L - 4) / n, gap = 2;
+  let bars = '', hits = '', labels = '';
+  items.forEach((it, i) => {
+    const x = L + i * bw, v = it.v || 0, h = Math.round((H - B - T) * v / max), y = H - B - h;
+    if (v > 0) {
+      const w = bw - gap, r = Math.min(4, w / 2, h);
+      bars += `<path d="M${x},${H - B} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${H - B} Z" fill="var(--main)"/>`;
+    }
+    hits += `<rect x="${x}" y="${T}" width="${bw}" height="${H - B - T}" fill="transparent" data-tip="${esc(it.label + ':' + (it.v == null ? 'なし' : it.v + unit))}"/>`;
+    const step = Math.ceil(n / 4);
+    if (i === n - 1 || (i % step === 0 && n - 1 - i >= step / 2)) labels += `<text x="${x + bw / 2}" y="${H - 6}" font-size="10" text-anchor="middle" fill="var(--sub)">${esc(it.label)}</text>`;
+  });
+  return `<div style="margin-top:12px"><div style="font-weight:bold">${esc(title)}</div>` +
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">` +
+    `<line x1="${L}" y1="${H - B}" x2="${W}" y2="${H - B}" stroke="var(--line)" stroke-width="1"/>` +
+    `<text x="${L - 4}" y="${T + 8}" font-size="10" text-anchor="end" fill="var(--sub)">${max}</text>` +
+    `<text x="${L - 4}" y="${H - B}" font-size="10" text-anchor="end" fill="var(--sub)">0</text>` +
+    bars + hits + labels + `</svg><div class="growth-cap">　</div></div>`;
+}
+function renderGrowth() {
+  const days = lastDays(14), lab = d => (d.getMonth() + 1) + '/' + d.getDate();
+  const practice = days.map(d => ({ label: lab(d), v: S.days[dayStr(d)] || 0 }));
+  const acc = days.map(d => { const h = S.hist[dayStr(d)]; return { label: lab(d), v: h && h.a ? Math.round(100 * (h.o || 0) / h.a) : null }; });
+  const mast = days.map(d => { const h = S.hist[dayStr(d)]; return { label: lab(d), v: h && h.m != null ? h.m : null }; });
+  const tracked = Object.keys(S.hist).length;
+  let html = barChart('練習した回数(最近2週間)', practice, '回');
+  html += barChart('その日の正解率', acc, '%', 100);
+  html += barChart('定着した問題の数(今日の復習で覚えた問題)', mast, '問');
+  if (tracked < 3) html += '<div class="small" style="margin-top:8px">※ 正解率と定着数のグラフは、2026年11月からの記録です。遊ぶほど棒が増えていきます。</div>';
+  $('growthCharts').innerHTML = html;
+  $('growthCharts').querySelectorAll('rect[data-tip]').forEach(r => {
+    const cap = r.closest('div').querySelector('.growth-cap');
+    const showTip = () => { cap.textContent = r.dataset.tip; };
+    r.addEventListener('click', showTip); r.addEventListener('mouseenter', showTip);
+  });
+}
+
 // ===== 類語マラソン =====
 // 打った言葉・言った言葉を、お題の言い換え一覧(ok)と照らし合わせて数える。
 // 活用の違い(「喜ばしかった」など)は、語尾1文字を除いた形で前方一致させる。
@@ -2492,6 +2667,7 @@ function renderBook() {
 // ===== 記録とバッジ =====
 function showRecord() {
   renderShindanHist();
+  renderGrowth();
   // カレンダー(今日を含む最近5週間、月曜はじまり)
   const cal = $('calendar'); cal.innerHTML = '';
   ['月','火','水','木','金','土','日'].forEach(d => { const h = document.createElement('div'); h.className = 'head'; h.textContent = d; cal.appendChild(h); });
