@@ -880,13 +880,17 @@ function normalize(raw) {
   s.shindan = s.shindan.filter(x => isObj(x) && isFinite(Number(x.s)) && typeof x.d === 'string');
   return migrate(s);
 }
+let loadNotice = '';
 function load() {
-  const txt = localStorage.getItem(KEY);
+  let txt = null;
+  try { txt = localStorage.getItem(KEY); }
+  catch (e) { loadNotice = 'このブラウザでは記録を保存できない設定になっています。遊べますが、閉じると記録は残りません。'; return blank(); }
   if (!txt) return blank();
   try { return normalize(JSON.parse(txt)); }
   catch (e) {
     // 壊れた記録は消さずに別の場所へ退避してから、まっさらで始める
     try { localStorage.setItem(KEY + '_broken', txt); } catch (e2) {}
+    loadNotice = '前の記録がうまく読めなかったので、控えに残して新しく始めました。';
     return blank();
   }
 }
@@ -1406,7 +1410,7 @@ function nextNarabe() {
   if (nCorrect === nRound.length && nRound.length >= 5) { S.cnt.perfect++; save(); checkBadges(); }
   $('rLabel').textContent = '強さ並べ替えの結果';
   $('rScore').textContent = `${nCorrect} / ${nRound.length}`;
-  $('rComment').textContent = nCorrect === nRound.length ? '完璧。言葉の温度が分かる人は、話がうまい。' : '言葉の強さの差は、使い分けの第一歩。何回もやれば体で覚える。';
+  $('rComment').textContent = nCorrect === nRound.length ? '完璧！言葉の温度が分かっていて、すばらしいです。' : '言葉の強さの差は、使い分けの第一歩。何回もやれば体で覚える。';
   $('rPoint').textContent = `今回 +${nPoint}ポイント(合計 ${S.point})`;
   $('rWordsLabel').textContent = '今回出てきた言葉';
   $('rWords').innerHTML = nRound.flatMap(i => (D.narabe[i].w || []).map(([w, m]) =>
@@ -1481,11 +1485,11 @@ function endTime(quit) {
   $('rScore').textContent = `${tScore}問正解`;
   $('rComment').textContent = newBest ? '🎉 自己ベスト更新！' : `自己ベストは${S.best}問。次はきっと超えられるよ！`;
   $('rPoint').textContent = `+${pts}ポイント(合計 ${S.point})`;
-  $('rWordsLabel').textContent = tMiss.length ? '間違えた問題(覚えて帰れ)' : '間違えた問題';
+  $('rWordsLabel').textContent = tMiss.length ? '間違えた問題(ここを覚えればもっと伸びます)' : '間違えた問題';
   $('rWords').innerHTML = tMiss.map(q =>
     `<div class="book-item"><div class="small">${esc(q.cat)}:${esc(q.prompt.replace(/<[^>]+>/g, ''))}</div><b>正解:${esc(q.answer)}</b>` +
     (q.words || []).map(([w, m]) => `<div class="m">${esc(w)} … ${esc(m)}</div>`).join('') + '</div>').join('') ||
-    '<div class="small">ノーミス。やるじゃないか。</div>';
+    '<div class="small">ノーミス！すばらしいです。</div>';
   $('rAgain').textContent = 'もう1回';
   $('rAgain').onclick = againFn;
   show('result');
@@ -1762,7 +1766,7 @@ function renderRank() {
   const btn = $('examBtn');
   if (r >= RANKS.length - 1) {
     btn.classList.add('hidden');
-    $('rankInfo').textContent = '最高段位です。もう道場を開ける。';
+    $('rankInfo').textContent = '最高段位です。ここまで来たのは本当にすごいです！';
     return;
   }
   const need = examReq(r) - S.point;
@@ -2270,7 +2274,7 @@ function startQTimer(sec) {
     if (left <= 3 && left > 0) beep([[880, .05]]);
     if (left <= 0) {
       stopQTimer();
-      if (!answered) answer(null, { t: '(時間切れ)', tk: '時間切れ。迷った時点で負けだ。' });
+      if (!answered) answer(null, { t: '(時間切れ)', tk: '時間切れ。次はひらめいた物をパッと選んでみましょう。' });
     }
   }, 1000);
 }
@@ -2304,8 +2308,8 @@ function hardCount(lv) { return HARD_MODES.reduce((s, m) => s + D[m].filter(q =>
 function showCourse() {
   $('courseList').innerHTML = COURSES.map(c => {
     const st = courseState(c.lv), open = courseUnlocked(c.lv), cnt = hardCount(c.lv);
-    const status = st.cleared ? '✅ クリア済み' : (st.tries ? `挑戦${st.tries}回` : '未挑戦');
-    const best = c.survival ? `最高 ${st.best}問連続` : `最高 ${st.best}/${c.n}`;
+    const status = st.cleared ? '✅ クリア済み' : (Number(st.tries) ? `挑戦${Number(st.tries) || 0}回` : '未挑戦');
+    const bv = Number(st.best) || 0; const best = c.survival ? `最高 ${bv}問連続` : `最高 ${bv}/${c.n}`;
     return `<div class="card course ${open ? '' : 'locked'}">
       <div class="rank-row"><div><div class="rank-big">${c.icon} ${esc(c.name)}</div><div class="small">${esc(c.desc)}</div>
       <div class="small">${status} ・ ${best} ・ 問題${cnt}問 ・ 初クリアで+${c.bonus}pt</div></div></div>
@@ -2659,8 +2663,8 @@ function renderBook() {
     const mine = (e.mine || []).map(t => `<div class="mine">✍ ${esc(t)}</div>`).join('');
     return `<div class="book-item"><b>${esc(w)}</b>${pill}<div class="m">${esc(e.m)}</div>${e.ex ? `<div class="small">例:${esc(e.ex)}</div>` : ''}${mine}` +
       (e.usedDay === today()
-        ? `<button class="usebtn" disabled>✔ 今日使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`
-        : `<button class="usebtn" onclick="usedWord(${k})">🗣 会話で使えた${e.used ? '(' + e.used + '回)' : ''}</button></div>`);
+        ? `<button class="usebtn" disabled>✔ 今日使えた${Number(e.used) ? '(' + (Number(e.used) || 0) + '回)' : ''}</button></div>`
+        : `<button class="usebtn" onclick="usedWord(${k})">🗣 会話で使えた${Number(e.used) ? '(' + (Number(e.used) || 0) + '回)' : ''}</button></div>`);
   }).join('');
 }
 
@@ -2780,6 +2784,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 }
 
 renderHome();
+if (loadNotice) setTimeout(() => toast(loadNotice), 800);
 </script>
 </body>
 </html>

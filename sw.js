@@ -1,6 +1,6 @@
 // 電波がない時でも動くように、アプリのファイルをスマホの中に控えておく仕組み。
 // 問題やアプリを直したら VERSION の数字を上げる(スマホ側が新しい物を取り直す)。
-const VERSION = 15;
+const VERSION = 16;
 const CACHE = 'iikae-dojo-v' + VERSION;
 const FILES = [
   './', './index.html', './guide.html', './manifest.json',
@@ -30,7 +30,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    Promise.all(keys.filter(k => k.startsWith('iikae-dojo-') && k !== CACHE).map(k => caches.delete(k)))
   ).then(() => self.clients.claim()));
 });
 
